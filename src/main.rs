@@ -81,19 +81,20 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         })
         .with_children(|builder| {
-            builder.spawn(Text2dBundle {
-                text: Text::from_section(
-                    points.val.to_string(),
-                    TextStyle {
-                        font_size: 40.0,
-                        color: Color::BLACK,
-                        ..default()
-                    },
-                ),
-                ..default()
-            });
-        })
-        .insert(points);
+            builder
+                .spawn(Text2dBundle {
+                    text: Text::from_section(
+                        points.val.to_string(),
+                        TextStyle {
+                            font_size: 40.0,
+                            color: Color::BLACK,
+                            ..default()
+                        },
+                    ),
+                    ..default()
+                })
+                .insert(points);
+        });
 }
 
 const TILE_SIZE: f32 = 80.0;
@@ -126,7 +127,7 @@ struct Box {
     x: f32,
     y: f32,
     z: f32,
-    vis: bool,
+    give_points: bool,
     _id: u8,
     value: u8,
 }
@@ -192,7 +193,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                     x: offset + f32::from(tile.0) * TILE_SIZE + f32::from(tile.0 + 1) * TILE_SPACER,
                     y: offset + f32::from(tile.1) * TILE_SIZE + f32::from(tile.1 + 1) * TILE_SPACER,
                     z: -1.0,
-                    vis: true,
+                    give_points: true,
                     _id: tile.0 + tile.1,
                     value: matr[usize::from(tile.0)][usize::from(tile.1)],
                 };
@@ -265,13 +266,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                    visibility: {
-                                        if boxes.vis == false {
-                                            Visibility::Hidden
-                                        } else {
-                                            Visibility::Visible
-                                        }
-                                    },
+
                                     texture: asset_server.load("bomba.png"),
                                     ..default()
                                 })
@@ -285,13 +280,6 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                    visibility: {
-                                        if boxes.vis == false {
-                                            Visibility::Hidden
-                                        } else {
-                                            Visibility::Visible
-                                        }
-                                    },
                                     texture: asset_server.load("one.png"),
                                     ..default()
                                 })
@@ -304,13 +292,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                    visibility: {
-                                        if boxes.vis == false {
-                                            Visibility::Hidden
-                                        } else {
-                                            Visibility::Visible
-                                        }
-                                    },
+
                                     texture: asset_server.load("twoo.png"),
                                     ..default()
                                 })
@@ -324,13 +306,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                    visibility: {
-                                        if boxes.vis == false {
-                                            Visibility::Hidden
-                                        } else {
-                                            Visibility::Visible
-                                        }
-                                    },
+
                                     texture: asset_server.load("threee.png"),
                                     ..default()
                                 })
