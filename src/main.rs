@@ -12,13 +12,15 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Bomba Flip".into(),
-                resizable: false,
+                resizable: true,
+                /*
                 resize_constraints: WindowResizeConstraints {
                     min_width: 950.0,
                     min_height: 950.0,
                     max_width: 950.0,
                     max_height: 950.0,
                 },
+                */
                 position: WindowPosition::Centered(MonitorSelection::Primary),
                 ..default()
             }),
@@ -27,6 +29,11 @@ fn main() {
         .add_systems(Startup, (setup, spawn_board))
         .add_systems(Update, input::move_cursor)
         .run();
+}
+
+#[derive(Component)]
+struct Points {
+    val: u64,
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -60,6 +67,33 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         })
         .insert(cursor);
+
+    let points = Points { val: 0 };
+
+    commands
+        .spawn(SpriteBundle {
+            sprite: Sprite {
+                color: Color::ANTIQUE_WHITE,
+                custom_size: Some(Vec2::new(200.0, 800.0)),
+                ..default()
+            },
+            transform: Transform::from_xyz(-450.0, -50.0, 4.0),
+            ..default()
+        })
+        .with_children(|builder| {
+            builder.spawn(Text2dBundle {
+                text: Text::from_section(
+                    points.val.to_string(),
+                    TextStyle {
+                        font_size: 40.0,
+                        color: Color::BLACK,
+                        ..default()
+                    },
+                ),
+                ..default()
+            });
+        })
+        .insert(points);
 }
 
 const TILE_SIZE: f32 = 80.0;
@@ -179,7 +213,6 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                             }
                             */
                         } else {
-                            info!("Spawning a three");
                             three_bank -= 1;
                             matr[usize::from(tile.0)][usize::from(tile.1)] = 3;
                         }
@@ -198,21 +231,17 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                             }
                             */
                         } else {
-                            info!("Spawning a two");
                             two_bank -= 1;
                             matr[usize::from(tile.0)][usize::from(tile.1)] = 2;
                         }
                     }
                     1 => {
-                        info!("Spawning a one!");
                         matr[usize::from(tile.0)][usize::from(tile.1)] = 1;
                     }
                     0 => {
-                        info!("Spawning a zero!");
                         matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
                     }
                     _ => {
-                        info!("Error hit, making a zero");
                         matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
                     }
                 }

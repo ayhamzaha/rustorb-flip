@@ -38,10 +38,30 @@ pub fn move_cursor(
     }
 
     if key_input.just_pressed(KeyCode::Space) {
+        let mut game_over: bool = false;
+        let mut points: u64 = 0;
         for (boxes, mut boxt) in boxquery.iter_mut() {
             if (boxes.x == cursor_transform.translation.x)
                 && (boxes.y == cursor_transform.translation.y)
             {
+                boxt.translation.z = 3.0;
+                if boxes.value == 0 {
+                    info!("GAME OVER: BOMB FLIPPED!");
+                    game_over = true;
+                } else if boxes.value == 1 {
+                    points += u64::from(boxes.value);
+                } else {
+                    if points == 0 {
+                        points += u64::from(boxes.value);
+                    } else {
+                        points *= u64::from(boxes.value);
+                    }
+                }
+                dbg!(points);
+            }
+        }
+        if game_over {
+            for (_boxes, mut boxt) in boxquery.iter_mut() {
                 boxt.translation.z = 3.0;
             }
         }
