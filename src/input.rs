@@ -78,8 +78,9 @@ pub fn move_cursor(
             }
         }
         if game_over {
-            for (_boxes, mut boxt) in boxquery.iter_mut() {
+            for (mut boxes, mut boxt) in boxquery.iter_mut() {
                 boxt.translation.z = 3.0;
+                boxes.give_points = false;
             }
         }
     }
