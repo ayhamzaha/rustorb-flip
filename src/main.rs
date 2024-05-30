@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{input::common_conditions::input_just_pressed, prelude::*};
 use itertools::Itertools;
 
 mod colors;
@@ -27,7 +27,14 @@ fn main() {
             ..default()
         }))
         .add_systems(Startup, (setup, spawn_board))
-        .add_systems(Update, (input::move_cursor, input::box_select))
+        .add_systems(
+            Update,
+            (
+                input::move_cursor,
+                input::box_select,
+                (reset_game_board, spawn_board).run_if(input_just_pressed(KeyCode::KeyR)),
+            ),
+        )
         .run();
 }
 
@@ -45,6 +52,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         start_pos_y: 0.0,
     };
 
+    //Spawns the background of the game
     commands.spawn(SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::new(800.0, 800.0)),
@@ -55,6 +63,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..default()
     });
 
+    //Spawns the cursor
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
@@ -68,8 +77,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         })
         .insert(cursor);
 
+    //Sets and spawns points counter and point counter area
     let points = Points { val: 0 };
-
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
@@ -80,6 +89,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             transform: Transform::from_xyz(-450.0, -50.0, 4.0),
             ..default()
         })
+        //point counter
         .with_children(|builder| {
             builder
                 .spawn(Text2dBundle {
@@ -111,7 +121,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 const TILE_SIZE: f32 = 80.0;
 const TILE_SPACER: f32 = 30.0;
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Debug)]
 struct Board {
     size: u8,
     physical_board_size: f32,
@@ -133,7 +143,7 @@ struct Cursor {
     start_pos_y: f32,
 }
 
-#[derive(Component)]
+#[derive(Component, Copy, Clone)]
 struct Box {
     x: f32,
     y: f32,
@@ -142,45 +152,213 @@ struct Box {
     value: u8,
 }
 
+#[derive(Component, Clone, Copy, Debug)]
+struct Marginbox;
+
+#[derive(Component)]
+struct GameMatrix {
+    matr: [[u8; 5]; 5],
+    two_bank: u8,
+    three_bank: u8,
+    r0_sum: u8,
+    r1_sum: u8,
+    r2_sum: u8,
+    r3_sum: u8,
+    r4_sum: u8,
+    r0_bsum: u8,
+    r1_bsum: u8,
+    r2_bsum: u8,
+    r3_bsum: u8,
+    r4_bsum: u8,
+    c0_sum: u8,
+    c1_sum: u8,
+    c2_sum: u8,
+    c3_sum: u8,
+    c4_sum: u8,
+    c0_bsum: u8,
+    c1_bsum: u8,
+    c2_bsum: u8,
+    c3_bsum: u8,
+    c4_bsum: u8,
+}
+
+fn set_game_matrix() -> GameMatrix {
+    let mut matr = GameMatrix {
+        matr: [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+        ],
+        two_bank: 4,
+        three_bank: 3,
+        r0_sum: 0,
+        r1_sum: 0,
+        r2_sum: 0,
+        r3_sum: 0,
+        r4_sum: 0,
+        r0_bsum: 0,
+        r1_bsum: 0,
+        r2_bsum: 0,
+        r3_bsum: 0,
+        r4_bsum: 0,
+        c0_sum: 0,
+        c1_sum: 0,
+        c2_sum: 0,
+        c3_sum: 0,
+        c4_sum: 0,
+        c0_bsum: 0,
+        c1_bsum: 0,
+        c2_bsum: 0,
+        c3_bsum: 0,
+        c4_bsum: 0,
+    };
+
+    for tile in (u8::from(0)..u8::from(5)).cartesian_product(u8::from(0)..u8::from(5)) {
+        let val: u8 = rand::random::<u8>() % u8::from(4);
+        match val {
+            3 => {
+                if matr.three_bank == 0 {
+                    matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 1;
+                } else {
+                    matr.three_bank -= 1;
+                    matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 3;
+                }
+            }
+            2 => {
+                if matr.two_bank == 0 {
+                    matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
+                } else {
+                    matr.two_bank -= 1;
+                    matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 2;
+                }
+            }
+            1 => {
+                matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 1;
+            }
+            0 => {
+                matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
+            }
+            _ => {
+                matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
+            }
+        }
+    }
+
+    for i in 0..matr.matr.len() {
+        for j in 0..matr.matr.len() {
+            if i == 0 {
+                matr.c0_sum += matr.matr[i][j];
+                if matr.matr[i][j] == 0 {
+                    matr.c0_bsum += 1;
+                }
+            } else if i == 1 {
+                matr.c1_sum += matr.matr[i][j];
+                if matr.matr[i][j] == 0 {
+                    matr.c1_bsum += 1;
+                }
+            } else if i == 2 {
+                matr.c2_sum += matr.matr[i][j];
+                if matr.matr[i][j] == 0 {
+                    matr.c2_bsum += 1;
+                }
+            } else if i == 3 {
+                matr.c3_sum += matr.matr[i][j];
+                if matr.matr[i][j] == 0 {
+                    matr.c3_bsum += 1;
+                }
+            } else if i == 4 {
+                matr.c4_sum += matr.matr[i][j];
+                if matr.matr[i][j] == 0 {
+                    matr.c4_bsum += 1;
+                }
+            }
+
+            if j == 0 {
+                matr.r0_sum += matr.matr[i][j];
+                if matr.matr[i][j] == 0 {
+                    matr.r0_bsum += 1;
+                }
+            } else if j == 1 {
+                matr.r1_sum += matr.matr[i][j];
+                if matr.matr[i][j] == 0 {
+                    matr.r1_bsum += 1;
+                }
+            } else if j == 2 {
+                matr.r2_sum += matr.matr[i][j];
+                if matr.matr[i][j] == 0 {
+                    matr.r2_bsum += 1;
+                }
+            } else if j == 3 {
+                matr.r3_sum += matr.matr[i][j];
+                if matr.matr[i][j] == 0 {
+                    matr.r3_bsum += 1;
+                }
+            } else if j == 4 {
+                matr.r4_sum += matr.matr[i][j];
+                if matr.matr[i][j] == 0 {
+                    matr.r4_bsum += 1;
+                }
+            }
+        }
+    }
+
+    matr
+}
+
+fn reset_game_board(
+    mut commands: Commands,
+    margbq: Query<
+        Entity,
+        (
+            Without<Board>,
+            With<Marginbox>,
+            Without<Box>,
+            Without<Cursor>,
+            Without<Points>,
+        ),
+    >,
+    boxq: Query<
+        Entity,
+        (
+            Without<Board>,
+            Without<Marginbox>,
+            With<Box>,
+            Without<Cursor>,
+            Without<Points>,
+        ),
+    >,
+    boardq: Query<
+        Entity,
+        (
+            With<Board>,
+            Without<Marginbox>,
+            Without<Box>,
+            Without<Cursor>,
+            Without<Points>,
+        ),
+    >,
+) {
+    for ent in margbq.iter() {
+        commands.entity(ent).despawn();
+    }
+    for ent in boxq.iter() {
+        commands.entity(ent).despawn();
+    }
+    for ent in boardq.iter() {
+        commands.entity(ent).despawn();
+    }
+}
+
+//Spawns game board
 fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
     let board = Board::new(5);
     let offset = -(board.physical_board_size) / 2.0 + TILE_SIZE * 0.5;
     let tab_size = board.physical_board_size - (TILE_SPACER * 2.0);
+    let margbox = Marginbox;
 
-    let mut matr: [[u8; 5]; 5] = [
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-    ];
-    let mut three_bank: u8 = 3;
-
-    let mut two_bank: u8 = 4;
-
-    let mut r0_sum: u8 = 0;
-    let mut r1_sum: u8 = 0;
-    let mut r2_sum: u8 = 0;
-    let mut r3_sum: u8 = 0;
-    let mut r4_sum: u8 = 0;
-
-    let mut r0_bsum: u8 = 0;
-    let mut r1_bsum: u8 = 0;
-    let mut r2_bsum: u8 = 0;
-    let mut r3_bsum: u8 = 0;
-    let mut r4_bsum: u8 = 0;
-
-    let mut c0_sum: u8 = 0;
-    let mut c1_sum: u8 = 0;
-    let mut c2_sum: u8 = 0;
-    let mut c3_sum: u8 = 0;
-    let mut c4_sum: u8 = 0;
-
-    let mut c0_bsum: u8 = 0;
-    let mut c1_bsum: u8 = 0;
-    let mut c2_bsum: u8 = 0;
-    let mut c3_bsum: u8 = 0;
-    let mut c4_bsum: u8 = 0;
+    let matr = set_game_matrix();
 
     //spawns board with grid
     commands
@@ -204,225 +382,145 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                     y: offset + f32::from(tile.1) * TILE_SIZE + f32::from(tile.1 + 1) * TILE_SPACER,
                     z: 2.0,
                     give_points: true,
-                    value: matr[usize::from(tile.0)][usize::from(tile.1)],
+                    value: matr.matr[usize::from(tile.0)][usize::from(tile.1)],
                 };
-                let val: u8 = rand::random::<u8>() % u8::from(4);
-                match val {
-                    3 => {
-                        if three_bank == 0 {
-                            matr[usize::from(tile.0)][usize::from(tile.1)] = 1;
-                            /*
-                            let flip: u8 = rand::random::<u8>() % u8::from(10) + 1;
-                            if flip >= 5 {
-                                info!("Failed three spawn, spawning a one");
-                                matr[usize::from(tile.0)][usize::from(tile.1)] = 1;
-                            } else {
-                                info!("Failed three spawn, spawning a zero");
-                                matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
+                boxes.value = matr.matr[usize::from(tile.0)][usize::from(tile.1)];
 
-                            }
-                            */
-                        } else {
-                            three_bank -= 1;
-                            matr[usize::from(tile.0)][usize::from(tile.1)] = 3;
-                        }
-                    }
-                    2 => {
-                        if two_bank == 0 {
-                            matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
-                            /*
-                            let flip: u8 = rand::random::<u8>() % u8::from(10) + 1;
-                            if flip >= 5 {
-                                info!("Failed two spawn, spawning a one");
-                                matr[usize::from(tile.0)][usize::from(tile.1)] = 1;
-                            } else {
-                                info!("Failed two spawn, spawning a zero");
-                                matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
-                            }
-                            */
-                        } else {
-                            two_bank -= 1;
-                            matr[usize::from(tile.0)][usize::from(tile.1)] = 2;
-                        }
-                    }
-                    1 => {
-                        matr[usize::from(tile.0)][usize::from(tile.1)] = 1;
-                    }
-                    0 => {
-                        matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
-                    }
-                    _ => {
-                        matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
-                    }
-                }
-                boxes.value = matr[usize::from(tile.0)][usize::from(tile.1)];
                 builder
                     .spawn(SpriteBundle {
                         sprite: Sprite {
                             custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
                             ..default()
                         },
+
                         transform: Transform::from_xyz(boxes.x, boxes.y, 2.0),
                         texture: asset_server.load("box4.png"),
                         ..default()
                     })
                     //Spawns items under the boxes
                     .with_children(|builder| {
-                        if matr[usize::from(tile.0)][usize::from(tile.1)] == 0 {
-                            builder
-                                .spawn(SpriteBundle {
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::new(40.0, 40.0)),
+                        match matr.matr[usize::from(tile.0)][usize::from(tile.1)] {
+                            0 => {
+                                builder
+                                    .spawn(SpriteBundle {
+                                        sprite: Sprite {
+                                            custom_size: Some(Vec2::new(40.0, 40.0)),
+                                            ..default()
+                                        },
+                                        transform: Transform::from_xyz(0.0, 0.0, boxes.z),
+                                        visibility: Visibility::Hidden,
+
+                                        texture: asset_server.load("bomba.png"),
                                         ..default()
-                                    },
-                                    transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                    visibility: Visibility::Visible,
+                                    })
+                                    .insert(boxes);
+                            }
+                            1 => {
+                                builder
+                                    .spawn(SpriteBundle {
+                                        sprite: Sprite {
+                                            custom_size: Some(Vec2::new(20.0, 20.0)),
 
-                                    texture: asset_server.load("bomba.png"),
-                                    ..default()
-                                })
-                                .insert(boxes);
-                        } else if matr[usize::from(tile.0)][usize::from(tile.1)] == 1 {
-                            builder
-                                .spawn(SpriteBundle {
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::new(20.0, 20.0)),
-
+                                            ..default()
+                                        },
+                                        transform: Transform::from_xyz(0.0, 0.0, boxes.z),
+                                        visibility: Visibility::Hidden,
+                                        texture: asset_server.load("one.png"),
                                         ..default()
-                                    },
-                                    transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                    visibility: Visibility::Visible,
-                                    texture: asset_server.load("one.png"),
-                                    ..default()
-                                })
-                                .insert(boxes);
-                        } else if matr[usize::from(tile.0)][usize::from(tile.1)] == 2 {
-                            builder
-                                .spawn(SpriteBundle {
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::new(20.0, 20.0)),
+                                    })
+                                    .insert(boxes);
+                            }
+                            2 => {
+                                builder
+                                    .spawn(SpriteBundle {
+                                        sprite: Sprite {
+                                            custom_size: Some(Vec2::new(20.0, 20.0)),
+                                            ..default()
+                                        },
+                                        transform: Transform::from_xyz(0.0, 0.0, boxes.z),
+                                        visibility: Visibility::Hidden,
+
+                                        texture: asset_server.load("twoo.png"),
                                         ..default()
-                                    },
-                                    transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                    visibility: Visibility::Visible,
+                                    })
+                                    .insert(boxes);
+                            }
+                            3 => {
+                                builder
+                                    .spawn(SpriteBundle {
+                                        sprite: Sprite {
+                                            custom_size: Some(Vec2::new(20.0, 20.0)),
 
-                                    texture: asset_server.load("twoo.png"),
-                                    ..default()
-                                })
-                                .insert(boxes);
-                        } else if matr[usize::from(tile.0)][usize::from(tile.1)] == 3 {
-                            builder
-                                .spawn(SpriteBundle {
-                                    sprite: Sprite {
-                                        custom_size: Some(Vec2::new(20.0, 20.0)),
+                                            ..default()
+                                        },
+                                        transform: Transform::from_xyz(0.0, 0.0, boxes.z),
+                                        visibility: Visibility::Hidden,
 
+                                        texture: asset_server.load("threee.png"),
                                         ..default()
-                                    },
-                                    transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                    visibility: Visibility::Visible,
+                                    })
+                                    .insert(boxes);
+                            }
+                            _ => {
+                                builder
+                                    .spawn(SpriteBundle {
+                                        sprite: Sprite {
+                                            custom_size: Some(Vec2::new(20.0, 20.0)),
 
-                                    texture: asset_server.load("threee.png"),
-                                    ..default()
-                                })
-                                .insert(boxes);
-                        }
-                    });
+                                            ..default()
+                                        },
+                                        transform: Transform::from_xyz(0.0, 0.0, boxes.z),
+                                        visibility: Visibility::Hidden,
+                                        ..default()
+                                    })
+                                    .insert(boxes);
+                            }
+                        };
+                    })
+                    .insert(margbox);
                 //Spawns grid box connectors (horizontal)
-                builder.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: colors::BOX_COLOR_ARRAY[usize::from(4 - tile.1)],
-                        custom_size: Some(Vec2::new(TILE_SPACER * 2.0 - 10.0, TILE_SIZE / 5.0)),
+                builder
+                    .spawn(SpriteBundle {
+                        sprite: Sprite {
+                            color: colors::BOX_COLOR_ARRAY[usize::from(4 - tile.1)],
+                            custom_size: Some(Vec2::new(TILE_SPACER * 2.0 - 10.0, TILE_SIZE / 5.0)),
+                            ..default()
+                        },
+                        transform: Transform::from_xyz(
+                            (offset + TILE_SPACER * 2.0)
+                                + f32::from(tile.0) * TILE_SIZE
+                                + f32::from(tile.0 + 1) * TILE_SPACER,
+                            offset
+                                + f32::from(tile.1) * TILE_SIZE
+                                + f32::from(tile.1 + 1) * TILE_SPACER,
+                            1.0,
+                        ),
+                        texture: asset_server.load("connectors_horiz.png"),
                         ..default()
-                    },
-                    transform: Transform::from_xyz(
-                        (offset + TILE_SPACER * 2.0)
-                            + f32::from(tile.0) * TILE_SIZE
-                            + f32::from(tile.0 + 1) * TILE_SPACER,
-                        offset
-                            + f32::from(tile.1) * TILE_SIZE
-                            + f32::from(tile.1 + 1) * TILE_SPACER,
-                        1.0,
-                    ),
-                    texture: asset_server.load("connectors_horiz.png"),
-                    ..default()
-                });
+                    })
+                    .insert(margbox);
 
                 //Spawns grid box connectors (vertical)
-                builder.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: colors::BOX_COLOR_ARRAY[usize::from(tile.0)],
-                        custom_size: Some(Vec2::new(TILE_SIZE / 5.0, TILE_SPACER * 2.0 - 10.0)),
+                builder
+                    .spawn(SpriteBundle {
+                        sprite: Sprite {
+                            color: colors::BOX_COLOR_ARRAY[usize::from(tile.0)],
+                            custom_size: Some(Vec2::new(TILE_SIZE / 5.0, TILE_SPACER * 2.0 - 10.0)),
+                            ..default()
+                        },
+                        transform: Transform::from_xyz(
+                            offset
+                                + f32::from(tile.0) * TILE_SIZE
+                                + f32::from(tile.0 + 1) * TILE_SPACER,
+                            (offset - TILE_SPACER * 2.0)
+                                + f32::from(tile.1) * TILE_SIZE
+                                + f32::from(tile.1 + 1) * TILE_SPACER,
+                            1.0,
+                        ),
+                        texture: asset_server.load("connectors_vertical.png"),
                         ..default()
-                    },
-                    transform: Transform::from_xyz(
-                        offset
-                            + f32::from(tile.0) * TILE_SIZE
-                            + f32::from(tile.0 + 1) * TILE_SPACER,
-                        (offset - TILE_SPACER * 2.0)
-                            + f32::from(tile.1) * TILE_SIZE
-                            + f32::from(tile.1 + 1) * TILE_SPACER,
-                        1.0,
-                    ),
-                    texture: asset_server.load("connectors_vertical.png"),
-                    ..default()
-                });
-            }
-            for i in 0..matr.len() {
-                for j in 0..matr.len() {
-                    if i == 0 {
-                        c0_sum += matr[i][j];
-                        if matr[i][j] == 0 {
-                            c0_bsum += 1;
-                        }
-                    } else if i == 1 {
-                        c1_sum += matr[i][j];
-                        if matr[i][j] == 0 {
-                            c1_bsum += 1;
-                        }
-                    } else if i == 2 {
-                        c2_sum += matr[i][j];
-                        if matr[i][j] == 0 {
-                            c2_bsum += 1;
-                        }
-                    } else if i == 3 {
-                        c3_sum += matr[i][j];
-                        if matr[i][j] == 0 {
-                            c3_bsum += 1;
-                        }
-                    } else if i == 4 {
-                        c4_sum += matr[i][j];
-                        if matr[i][j] == 0 {
-                            c4_bsum += 1;
-                        }
-                    }
-
-                    if j == 0 {
-                        r0_sum += matr[i][j];
-                        if matr[i][j] == 0 {
-                            r0_bsum += 1;
-                        }
-                    } else if j == 1 {
-                        r1_sum += matr[i][j];
-                        if matr[i][j] == 0 {
-                            r1_bsum += 1;
-                        }
-                    } else if j == 2 {
-                        r2_sum += matr[i][j];
-                        if matr[i][j] == 0 {
-                            r2_bsum += 1;
-                        }
-                    } else if j == 3 {
-                        r3_sum += matr[i][j];
-                        if matr[i][j] == 0 {
-                            r3_bsum += 1;
-                        }
-                    } else if j == 4 {
-                        r4_sum += matr[i][j];
-                        if matr[i][j] == 0 {
-                            r4_bsum += 1;
-                        }
-                    }
-                }
+                    })
+                    .insert(margbox);
             }
         });
 
@@ -437,116 +535,128 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
             texture: asset_server.load("slab_back.png"),
             ..default()
         })
-        .insert(board)
+        .insert(margbox)
         .with_children(|builder| {
             for tile in (0..board.size).cartesian_product(0..board.size) {
-                builder.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: colors::BOX_COLOR_ARRAY[usize::from(tile.0)],
-                        custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
+                builder
+                    .spawn(SpriteBundle {
+                        sprite: Sprite {
+                            color: colors::BOX_COLOR_ARRAY[usize::from(tile.0)],
+                            custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
+                            ..default()
+                        },
+                        transform: Transform::from_xyz(
+                            offset
+                                + f32::from(tile.0) * TILE_SIZE
+                                + f32::from(tile.0 + 1) * TILE_SPACER,
+                            0.0,
+                            1.0,
+                        ),
+                        texture: asset_server.load("outlinebox_vertical.png"),
                         ..default()
-                    },
-                    transform: Transform::from_xyz(
-                        offset
-                            + f32::from(tile.0) * TILE_SIZE
-                            + f32::from(tile.0 + 1) * TILE_SPACER,
-                        0.0,
-                        1.0,
-                    ),
-                    texture: asset_server.load("outlinebox_vertical.png"),
-                    ..default()
-                });
+                    })
+                    .insert(margbox);
             }
         })
+        .insert(margbox)
         .with_children(|builder| {
             for tile in (0..board.size).cartesian_product(0..board.size) {
                 //Spawns coin image
-                builder.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(24.0, 24.0)),
-                        ..default()
-                    },
-                    transform: Transform::from_xyz(
-                        (offset - 15.0)
-                            + f32::from(tile.0) * TILE_SIZE
-                            + f32::from(tile.0 + 1) * TILE_SPACER,
-                        -15.0,
-                        3.0,
-                    ),
-                    texture: asset_server.load("coin.png"),
-                    ..default()
-                });
-
-                builder.spawn(Text2dBundle {
-                    text: Text::from_section(
-                        match tile.0 {
-                            0 => c0_sum.to_string(),
-                            1 => c1_sum.to_string(),
-                            2 => c2_sum.to_string(),
-                            3 => c3_sum.to_string(),
-                            4 => c4_sum.to_string(),
-                            _ => String::from("--"),
-                        },
-                        TextStyle {
-                            font_size: 22.0,
-                            color: colors::FONT_COLOR,
+                builder
+                    .spawn(SpriteBundle {
+                        sprite: Sprite {
+                            custom_size: Some(Vec2::new(24.0, 24.0)),
                             ..default()
                         },
-                    ),
-                    transform: Transform::from_xyz(
-                        (offset + 13.0)
-                            + f32::from(tile.0) * TILE_SIZE
-                            + f32::from(tile.0 + 1) * TILE_SPACER,
-                        -15.0,
-                        13.0,
-                    ),
-                    ..default()
-                });
+                        transform: Transform::from_xyz(
+                            (offset - 15.0)
+                                + f32::from(tile.0) * TILE_SIZE
+                                + f32::from(tile.0 + 1) * TILE_SPACER,
+                            -15.0,
+                            3.0,
+                        ),
+                        texture: asset_server.load("coin.png"),
+                        ..default()
+                    })
+                    .insert(margbox);
+
+                builder
+                    .spawn(Text2dBundle {
+                        text: Text::from_section(
+                            match tile.0 {
+                                0 => matr.c0_sum.to_string(),
+                                1 => matr.c1_sum.to_string(),
+                                2 => matr.c2_sum.to_string(),
+                                3 => matr.c3_sum.to_string(),
+                                4 => matr.c4_sum.to_string(),
+                                _ => String::from("--"),
+                            },
+                            TextStyle {
+                                font_size: 22.0,
+                                color: colors::FONT_COLOR,
+                                ..default()
+                            },
+                        ),
+                        transform: Transform::from_xyz(
+                            (offset + 13.0)
+                                + f32::from(tile.0) * TILE_SIZE
+                                + f32::from(tile.0 + 1) * TILE_SPACER,
+                            -15.0,
+                            13.0,
+                        ),
+                        ..default()
+                    })
+                    .insert(margbox);
 
                 //Spawns bomb image
-                builder.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(24.0, 24.0)),
-                        ..default()
-                    },
-                    transform: Transform::from_xyz(
-                        (offset - 15.0)
-                            + f32::from(tile.0) * TILE_SIZE
-                            + f32::from(tile.0 + 1) * TILE_SPACER,
-                        15.0,
-                        3.0,
-                    ),
-                    texture: asset_server.load("bomba.png"),
-                    ..default()
-                });
-
-                builder.spawn(Text2dBundle {
-                    text: Text::from_section(
-                        match tile.0 {
-                            0 => c0_bsum.to_string(),
-                            1 => c1_bsum.to_string(),
-                            2 => c2_bsum.to_string(),
-                            3 => c3_bsum.to_string(),
-                            4 => c4_bsum.to_string(),
-                            _ => String::from("--"),
-                        },
-                        TextStyle {
-                            font_size: 22.0,
-                            color: colors::FONT_COLOR,
+                builder
+                    .spawn(SpriteBundle {
+                        sprite: Sprite {
+                            custom_size: Some(Vec2::new(24.0, 24.0)),
                             ..default()
                         },
-                    ),
-                    transform: Transform::from_xyz(
-                        (offset + 13.0)
-                            + f32::from(tile.0) * TILE_SIZE
-                            + f32::from(tile.0 + 1) * TILE_SPACER,
-                        16.0,
-                        13.0,
-                    ),
-                    ..default()
-                });
+                        transform: Transform::from_xyz(
+                            (offset - 15.0)
+                                + f32::from(tile.0) * TILE_SIZE
+                                + f32::from(tile.0 + 1) * TILE_SPACER,
+                            15.0,
+                            3.0,
+                        ),
+                        texture: asset_server.load("bomba.png"),
+                        ..default()
+                    })
+                    .insert(margbox);
+
+                builder
+                    .spawn(Text2dBundle {
+                        text: Text::from_section(
+                            match tile.0 {
+                                0 => matr.c0_bsum.to_string(),
+                                1 => matr.c1_bsum.to_string(),
+                                2 => matr.c2_bsum.to_string(),
+                                3 => matr.c3_bsum.to_string(),
+                                4 => matr.c4_bsum.to_string(),
+                                _ => String::from("--"),
+                            },
+                            TextStyle {
+                                font_size: 22.0,
+                                color: colors::FONT_COLOR,
+                                ..default()
+                            },
+                        ),
+                        transform: Transform::from_xyz(
+                            (offset + 13.0)
+                                + f32::from(tile.0) * TILE_SIZE
+                                + f32::from(tile.0 + 1) * TILE_SPACER,
+                            16.0,
+                            13.0,
+                        ),
+                        ..default()
+                    })
+                    .insert(margbox);
             }
-        });
+        })
+        .insert(margbox);
 
     //Spawns right info tab with grid
     commands
@@ -560,113 +670,126 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
             texture: asset_server.load("slab_back_vert.png"),
             ..default()
         })
+        .insert(margbox)
         .with_children(|builder| {
             for tile in (0..board.size).cartesian_product(0..board.size) {
-                builder.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        color: colors::BOX_COLOR_ARRAY[usize::from(4 - tile.0)],
-                        custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
+                builder
+                    .spawn(SpriteBundle {
+                        sprite: Sprite {
+                            color: colors::BOX_COLOR_ARRAY[usize::from(4 - tile.0)],
+                            custom_size: Some(Vec2::new(TILE_SIZE, TILE_SIZE)),
+                            ..default()
+                        },
+                        transform: Transform::from_xyz(
+                            0.0,
+                            offset
+                                + f32::from(tile.0) * TILE_SIZE
+                                + f32::from(tile.0 + 1) * TILE_SPACER,
+                            2.0,
+                        ),
+                        texture: asset_server.load("outlinebox_horiz.png"),
                         ..default()
-                    },
-                    transform: Transform::from_xyz(
-                        0.0,
-                        offset
-                            + f32::from(tile.0) * TILE_SIZE
-                            + f32::from(tile.0 + 1) * TILE_SPACER,
-                        2.0,
-                    ),
-                    texture: asset_server.load("outlinebox_horiz.png"),
-                    ..default()
-                });
+                    })
+                    .insert(margbox);
             }
         })
+        .insert(margbox)
         .with_children(|builder| {
             for tile in (0..board.size).cartesian_product(0..board.size) {
                 //Spawns coin image
-                builder.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(24.0, 24.0)),
-                        ..default()
-                    },
-                    transform: Transform::from_xyz(
-                        -15.0,
-                        (offset - 15.0)
-                            + f32::from(tile.1) * TILE_SIZE
-                            + f32::from(tile.1 + 1) * TILE_SPACER,
-                        3.0,
-                    ),
-                    texture: asset_server.load("coin.png"),
-                    ..default()
-                });
-
-                builder.spawn(Text2dBundle {
-                    text: Text::from_section(
-                        match tile.1 {
-                            0 => r0_sum.to_string(),
-                            1 => r1_sum.to_string(),
-                            2 => r2_sum.to_string(),
-                            3 => r3_sum.to_string(),
-                            4 => r4_sum.to_string(),
-                            _ => String::from("--"),
-                        },
-                        TextStyle {
-                            font_size: 22.0,
-                            color: colors::FONT_COLOR,
+                builder
+                    .spawn(SpriteBundle {
+                        sprite: Sprite {
+                            custom_size: Some(Vec2::new(24.0, 24.0)),
                             ..default()
                         },
-                    ),
-                    transform: Transform::from_xyz(
-                        13.0,
-                        (offset - 15.0)
-                            + f32::from(tile.1) * TILE_SIZE
-                            + f32::from(tile.1 + 1) * TILE_SPACER,
-                        3.0,
-                    ),
-                    ..default()
-                });
+                        transform: Transform::from_xyz(
+                            -15.0,
+                            (offset - 15.0)
+                                + f32::from(tile.1) * TILE_SIZE
+                                + f32::from(tile.1 + 1) * TILE_SPACER,
+                            3.0,
+                        ),
+                        texture: asset_server.load("coin.png"),
+                        ..default()
+                    })
+                    .insert(margbox);
+
+                builder
+                    .spawn(Text2dBundle {
+                        text: Text::from_section(
+                            match tile.1 {
+                                0 => matr.r0_sum.to_string(),
+                                1 => matr.r1_sum.to_string(),
+                                2 => matr.r2_sum.to_string(),
+                                3 => matr.r3_sum.to_string(),
+                                4 => matr.r4_sum.to_string(),
+                                _ => String::from("--"),
+                            },
+                            TextStyle {
+                                font_size: 22.0,
+                                color: colors::FONT_COLOR,
+                                ..default()
+                            },
+                        ),
+                        transform: Transform::from_xyz(
+                            13.0,
+                            (offset - 15.0)
+                                + f32::from(tile.1) * TILE_SIZE
+                                + f32::from(tile.1 + 1) * TILE_SPACER,
+                            3.0,
+                        ),
+                        ..default()
+                    })
+                    .insert(margbox);
 
                 //Spawns bomb image
-                builder.spawn(SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(24.0, 24.0)),
-                        ..default()
-                    },
-                    transform: Transform::from_xyz(
-                        -15.0,
-                        (offset + 15.0)
-                            + f32::from(tile.1) * TILE_SIZE
-                            + f32::from(tile.1 + 1) * TILE_SPACER,
-                        3.0,
-                    ),
-                    texture: asset_server.load("bomba.png"),
-                    ..default()
-                });
-
-                builder.spawn(Text2dBundle {
-                    text: Text::from_section(
-                        match tile.1 {
-                            0 => r0_bsum.to_string(),
-                            1 => r1_bsum.to_string(),
-                            2 => r2_bsum.to_string(),
-                            3 => r3_bsum.to_string(),
-                            4 => r4_bsum.to_string(),
-                            _ => String::from("--"),
-                        },
-                        TextStyle {
-                            font_size: 22.0,
-                            color: colors::FONT_COLOR,
+                builder
+                    .spawn(SpriteBundle {
+                        sprite: Sprite {
+                            custom_size: Some(Vec2::new(24.0, 24.0)),
                             ..default()
                         },
-                    ),
-                    transform: Transform::from_xyz(
-                        13.0,
-                        (offset + 15.0)
-                            + f32::from(tile.1) * TILE_SIZE
-                            + f32::from(tile.1 + 1) * TILE_SPACER,
-                        3.0,
-                    ),
-                    ..default()
-                });
+                        transform: Transform::from_xyz(
+                            -15.0,
+                            (offset + 15.0)
+                                + f32::from(tile.1) * TILE_SIZE
+                                + f32::from(tile.1 + 1) * TILE_SPACER,
+                            3.0,
+                        ),
+                        texture: asset_server.load("bomba.png"),
+                        ..default()
+                    })
+                    .insert(margbox);
+
+                builder
+                    .spawn(Text2dBundle {
+                        text: Text::from_section(
+                            match tile.1 {
+                                0 => matr.r0_bsum.to_string(),
+                                1 => matr.r1_bsum.to_string(),
+                                2 => matr.r2_bsum.to_string(),
+                                3 => matr.r3_bsum.to_string(),
+                                4 => matr.r4_bsum.to_string(),
+                                _ => String::from("--"),
+                            },
+                            TextStyle {
+                                font_size: 22.0,
+                                color: colors::FONT_COLOR,
+                                ..default()
+                            },
+                        ),
+                        transform: Transform::from_xyz(
+                            13.0,
+                            (offset + 15.0)
+                                + f32::from(tile.1) * TILE_SIZE
+                                + f32::from(tile.1 + 1) * TILE_SPACER,
+                            3.0,
+                        ),
+                        ..default()
+                    })
+                    .insert(margbox);
             }
-        });
+        })
+        .insert(margbox);
 }
