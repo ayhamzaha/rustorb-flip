@@ -27,7 +27,7 @@ fn main() {
             ..default()
         }))
         .add_systems(Startup, (setup, spawn_board))
-        .add_systems(Update, input::move_cursor)
+        .add_systems(Update, (input::move_cursor, input::box_select))
         .run();
 }
 
@@ -83,14 +83,25 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .with_children(|builder| {
             builder
                 .spawn(Text2dBundle {
-                    text: Text::from_section(
-                        points.val.to_string(),
-                        TextStyle {
-                            font_size: 40.0,
-                            color: Color::BLACK,
-                            ..default()
-                        },
-                    ),
+                    text: Text::from_sections([
+                        TextSection::new(
+                            "Score: ",
+                            TextStyle {
+                                font_size: 40.0,
+                                color: Color::BLACK,
+                                ..default()
+                            },
+                        ),
+                        TextSection::new(
+                            points.val.to_string(),
+                            TextStyle {
+                                font_size: 40.0,
+                                color: Color::BLACK,
+                                ..default()
+                            },
+                        ),
+                    ]),
+                    transform: Transform::from_xyz(0.0, 250.0, 1.0),
                     ..default()
                 })
                 .insert(points);
@@ -122,13 +133,12 @@ struct Cursor {
     start_pos_y: f32,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component)]
 struct Box {
     x: f32,
     y: f32,
     z: f32,
     give_points: bool,
-    _id: u8,
     value: u8,
 }
 
@@ -192,9 +202,8 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                 let mut boxes = Box {
                     x: offset + f32::from(tile.0) * TILE_SIZE + f32::from(tile.0 + 1) * TILE_SPACER,
                     y: offset + f32::from(tile.1) * TILE_SIZE + f32::from(tile.1 + 1) * TILE_SPACER,
-                    z: -1.0,
+                    z: 2.0,
                     give_points: true,
-                    _id: tile.0 + tile.1,
                     value: matr[usize::from(tile.0)][usize::from(tile.1)],
                 };
                 let val: u8 = rand::random::<u8>() % u8::from(4);
@@ -257,6 +266,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                         texture: asset_server.load("box4.png"),
                         ..default()
                     })
+                    //Spawns items under the boxes
                     .with_children(|builder| {
                         if matr[usize::from(tile.0)][usize::from(tile.1)] == 0 {
                             builder
@@ -266,6 +276,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     transform: Transform::from_xyz(0.0, 0.0, boxes.z),
+                                    visibility: Visibility::Visible,
 
                                     texture: asset_server.load("bomba.png"),
                                     ..default()
@@ -280,6 +291,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     transform: Transform::from_xyz(0.0, 0.0, boxes.z),
+                                    visibility: Visibility::Visible,
                                     texture: asset_server.load("one.png"),
                                     ..default()
                                 })
@@ -292,6 +304,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     transform: Transform::from_xyz(0.0, 0.0, boxes.z),
+                                    visibility: Visibility::Visible,
 
                                     texture: asset_server.load("twoo.png"),
                                     ..default()
@@ -306,6 +319,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     transform: Transform::from_xyz(0.0, 0.0, boxes.z),
+                                    visibility: Visibility::Visible,
 
                                     texture: asset_server.load("threee.png"),
                                     ..default()
