@@ -220,7 +220,12 @@ fn set_game_matrix() -> GameMatrix {
         match val {
             3 => {
                 if matr.three_bank == 0 {
-                    matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 1;
+                    let lvl_val: u8 = rand::random::<u8>() % u8::from(10);
+                    if lvl_val <= 5 {
+                        matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
+                    } else {
+                        matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 1;
+                    }
                 } else {
                     matr.three_bank -= 1;
                     matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 3;
@@ -228,7 +233,12 @@ fn set_game_matrix() -> GameMatrix {
             }
             2 => {
                 if matr.two_bank == 0 {
-                    matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
+                    let lvl_val: u8 = rand::random::<u8>() % u8::from(10);
+                    if lvl_val <= 5 {
+                        matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
+                    } else {
+                        matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 1;
+                    }
                 } else {
                     matr.two_bank -= 1;
                     matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 2;
@@ -307,6 +317,7 @@ fn set_game_matrix() -> GameMatrix {
     matr
 }
 
+//Runs on loss or restart(r button press)
 fn reset_game_board(
     mut commands: Commands,
     margbq: Query<
@@ -320,7 +331,7 @@ fn reset_game_board(
         ),
     >,
     boxq: Query<
-        Entity,
+        (&Box, Entity),
         (
             Without<Board>,
             Without<Marginbox>,
@@ -339,15 +350,41 @@ fn reset_game_board(
             Without<Points>,
         ),
     >,
+    mut pointquery: Query<
+        (&mut Points, &mut Text),
+        (Without<Cursor>, Without<Board>, Without<Box>),
+    >,
 ) {
     for ent in margbq.iter() {
         commands.entity(ent).despawn();
     }
-    for ent in boxq.iter() {
+    for (_boxes, ent) in boxq.iter() {
         commands.entity(ent).despawn();
     }
     for ent in boardq.iter() {
         commands.entity(ent).despawn();
+    }
+
+    for (mut points, mut ptext) in pointquery.iter_mut() {
+        points.val = 0;
+        *ptext = Text::from_sections([
+            TextSection::new(
+                "Score: ",
+                TextStyle {
+                    font_size: 40.0,
+                    color: Color::BLACK,
+                    ..default()
+                },
+            ),
+            TextSection::new(
+                points.val.to_string(),
+                TextStyle {
+                    font_size: 40.0,
+                    color: Color::BLACK,
+                    ..default()
+                },
+            ),
+        ])
     }
 }
 
@@ -408,7 +445,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                             ..default()
                                         },
                                         transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                        visibility: Visibility::Hidden,
+                                        visibility: Visibility::Visible,
 
                                         texture: asset_server.load("bomba.png"),
                                         ..default()
@@ -424,7 +461,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                             ..default()
                                         },
                                         transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                        visibility: Visibility::Hidden,
+                                        visibility: Visibility::Visible,
                                         texture: asset_server.load("one.png"),
                                         ..default()
                                     })
@@ -438,7 +475,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                             ..default()
                                         },
                                         transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                        visibility: Visibility::Hidden,
+                                        visibility: Visibility::Visible,
 
                                         texture: asset_server.load("twoo.png"),
                                         ..default()
@@ -454,7 +491,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                             ..default()
                                         },
                                         transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                        visibility: Visibility::Hidden,
+                                        visibility: Visibility::Visible,
 
                                         texture: asset_server.load("threee.png"),
                                         ..default()
@@ -470,7 +507,7 @@ fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
                                             ..default()
                                         },
                                         transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                        visibility: Visibility::Hidden,
+                                        visibility: Visibility::Visible,
                                         ..default()
                                     })
                                     .insert(boxes);
