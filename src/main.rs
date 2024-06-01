@@ -26,7 +26,7 @@ fn main() {
             }),
             ..default()
         }))
-        .add_systems(Startup, (setup, spawn_board))
+        .add_systems(Startup, (setup, spawn_board).chain())
         .add_systems(
             Update,
             (
@@ -79,6 +79,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     //Sets and spawns points counter and point counter area
     let points = Points { val: 0 };
+    let level = Level { lvl: 1 };
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
@@ -115,6 +116,31 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     ..default()
                 })
                 .insert(points);
+
+            builder
+                .spawn(Text2dBundle {
+                    text: Text::from_sections([
+                        TextSection::new(
+                            "Level: ",
+                            TextStyle {
+                                font_size: 40.0,
+                                color: Color::BLACK,
+                                ..default()
+                            },
+                        ),
+                        TextSection::new(
+                            level.lvl.to_string(),
+                            TextStyle {
+                                font_size: 40.0,
+                                color: Color::BLACK,
+                                ..default()
+                            },
+                        ),
+                    ]),
+                    transform: Transform::from_xyz(0.0, 150.0, 1.0),
+                    ..default()
+                })
+                .insert(level);
         });
 }
 
@@ -155,11 +181,15 @@ struct Box {
 #[derive(Component, Clone, Copy, Debug)]
 struct Marginbox;
 
+#[derive(Component, Clone, Copy, Debug)]
+struct Level {
+    lvl: u8,
+}
+
 #[derive(Component)]
 struct GameMatrix {
     matr: [[u8; 5]; 5],
-    two_bank: u8,
-    three_bank: u8,
+    num_bank: u8,
     r0_sum: u8,
     r1_sum: u8,
     r2_sum: u8,
@@ -182,17 +212,16 @@ struct GameMatrix {
     c4_bsum: u8,
 }
 
-fn set_game_matrix() -> GameMatrix {
+fn set_game_matrix(level: Level) -> GameMatrix {
     let mut matr = GameMatrix {
         matr: [
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1],
         ],
-        two_bank: 4,
-        three_bank: 3,
+        num_bank: 4,
         r0_sum: 0,
         r1_sum: 0,
         r2_sum: 0,
@@ -214,12 +243,13 @@ fn set_game_matrix() -> GameMatrix {
         c3_bsum: 0,
         c4_bsum: 0,
     };
-
+    matr.num_bank += level.lvl;
+    dbg!(matr.num_bank);
     for tile in (u8::from(0)..u8::from(5)).cartesian_product(u8::from(0)..u8::from(5)) {
         let val: u8 = rand::random::<u8>() % u8::from(4);
         match val {
             3 => {
-                if matr.three_bank == 0 {
+                if matr.num_bank == 0 {
                     let lvl_val: u8 = rand::random::<u8>() % u8::from(10);
                     if lvl_val <= 5 {
                         matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
@@ -227,12 +257,12 @@ fn set_game_matrix() -> GameMatrix {
                         matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 1;
                     }
                 } else {
-                    matr.three_bank -= 1;
+                    matr.num_bank -= 1;
                     matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 3;
                 }
             }
             2 => {
-                if matr.two_bank == 0 {
+                if matr.num_bank == 0 {
                     let lvl_val: u8 = rand::random::<u8>() % u8::from(10);
                     if lvl_val <= 5 {
                         matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 0;
@@ -240,7 +270,7 @@ fn set_game_matrix() -> GameMatrix {
                         matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 1;
                     }
                 } else {
-                    matr.two_bank -= 1;
+                    matr.num_bank -= 1;
                     matr.matr[usize::from(tile.0)][usize::from(tile.1)] = 2;
                 }
             }
@@ -330,8 +360,8 @@ fn reset_game_board(
             Without<Points>,
         ),
     >,
-    boxq: Query<
-        (&Box, Entity),
+    mut boxq: Query<
+        (&mut Box, Entity),
         (
             Without<Board>,
             Without<Marginbox>,
@@ -354,11 +384,44 @@ fn reset_game_board(
         (&mut Points, &mut Text),
         (Without<Cursor>, Without<Board>, Without<Box>),
     >,
+    mut levelq: Query<
+        (&mut Level, &mut Text),
+        (
+            With<Level>,
+            Without<Board>,
+            Without<Marginbox>,
+            Without<Box>,
+            Without<Cursor>,
+            Without<Points>,
+        ),
+    >,
 ) {
+    for (mut levelnum, mut leveltext) in levelq.iter_mut() {
+        levelnum.lvl = 1;
+        *leveltext = Text::from_sections([
+            TextSection::new(
+                "Level: ",
+                TextStyle {
+                    font_size: 40.0,
+                    color: Color::BLACK,
+                    ..default()
+                },
+            ),
+            TextSection::new(
+                levelnum.lvl.to_string(),
+                TextStyle {
+                    font_size: 40.0,
+                    color: Color::BLACK,
+                    ..default()
+                },
+            ),
+        ])
+    }
+
     for ent in margbq.iter() {
         commands.entity(ent).despawn();
     }
-    for (_boxes, ent) in boxq.iter() {
+    for (_boxes, ent) in boxq.iter_mut() {
         commands.entity(ent).despawn();
     }
     for ent in boardq.iter() {
@@ -389,13 +452,27 @@ fn reset_game_board(
 }
 
 //Spawns game board
-fn spawn_board(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn spawn_board(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut levelq: Query<
+        &mut Level,
+        (
+            With<Level>,
+            Without<Board>,
+            Without<Marginbox>,
+            Without<Box>,
+            Without<Cursor>,
+            Without<Points>,
+        ),
+    >,
+) {
     let board = Board::new(5);
     let offset = -(board.physical_board_size) / 2.0 + TILE_SIZE * 0.5;
     let tab_size = board.physical_board_size - (TILE_SPACER * 2.0);
     let margbox = Marginbox;
-
-    let matr = set_game_matrix();
+    let levelnum = levelq.single_mut();
+    let matr = set_game_matrix(Level { lvl: levelnum.lvl });
 
     //spawns board with grid
     commands

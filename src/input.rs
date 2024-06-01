@@ -61,9 +61,7 @@ pub fn box_select(
                         if boxes.value == 0 {
                             info!("GAME OVER: BOMB FLIPPED!");
                             game_over = true;
-                        } else if boxes.value == 1 {
-                            points.val += u64::from(boxes.value);
-                        } else if boxes.value == 2 || boxes.value == 3 {
+                        } else {
                             if points.val == 0 {
                                 points.val += u64::from(boxes.value);
                             } else {
@@ -74,7 +72,7 @@ pub fn box_select(
                             TextSection::new(
                                 "Score: ",
                                 TextStyle {
-                                    font_size: 30.0,
+                                    font_size: 40.0,
                                     color: Color::BLACK,
                                     ..default()
                                 },
@@ -82,7 +80,7 @@ pub fn box_select(
                             TextSection::new(
                                 points.val.to_string(),
                                 TextStyle {
-                                    font_size: 30.0,
+                                    font_size: 40.0,
                                     color: Color::BLACK,
                                     ..default()
                                 },
