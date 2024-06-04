@@ -1,6 +1,87 @@
 use bevy::prelude::*;
 
-use crate::{Board, Box, Cursor, Points, TILE_SIZE, TILE_SPACER};
+use crate::{
+    board::Board, board::Box, board::Cursor, board::Points, board::TILE_SIZE, board::TILE_SPACER,
+    mainmenu::Play, mainmenu::Quit, GameState,
+};
+
+pub fn mainmenu_input(
+    key_input: Res<ButtonInput<KeyCode>>,
+    mut playq: Query<
+        (&mut Text, &mut Play),
+        (
+            With<Play>,
+            Without<Quit>,
+            Without<Points>,
+            Without<Cursor>,
+            Without<Board>,
+            Without<Box>,
+        ),
+    >,
+    mut quitq: Query<
+        (&mut Text, &mut Quit),
+        (
+            With<Quit>,
+            Without<Play>,
+            Without<Points>,
+            Without<Cursor>,
+            Without<Board>,
+            Without<Box>,
+        ),
+    >,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    let mut playtext = playq.single_mut();
+    let mut quittext = quitq.single_mut();
+
+    if key_input.just_pressed(KeyCode::ArrowUp) {
+        playtext.1.sel = true;
+        quittext.1.sel = false;
+        *playtext.0 = Text::from_section(
+            "Play",
+            TextStyle {
+                font_size: 60.0,
+                color: Color::YELLOW,
+                ..default()
+            },
+        );
+        *quittext.0 = Text::from_section(
+            "Quit",
+            TextStyle {
+                font_size: 60.0,
+                color: Color::WHITE,
+                ..default()
+            },
+        );
+    } else if key_input.just_pressed(KeyCode::ArrowDown) {
+        playtext.1.sel = false;
+        quittext.1.sel = true;
+        *playtext.0 = Text::from_section(
+            "Play",
+            TextStyle {
+                font_size: 60.0,
+                color: Color::WHITE,
+                ..default()
+            },
+        );
+        *quittext.0 = Text::from_section(
+            "Quit",
+            TextStyle {
+                font_size: 60.0,
+                color: Color::YELLOW,
+                ..default()
+            },
+        );
+    }
+    if key_input.just_pressed(KeyCode::Space) {
+        if playtext.1.sel {
+            info!("you chose play!");
+            next_state.set(GameState::Playing);
+        } else {
+            info!("you chose quit!");
+        }
+    }
+}
 
 //Handles movement of player cursor
 pub fn move_cursor(
@@ -45,6 +126,7 @@ pub fn box_select(
         (&mut Points, &mut Text),
         (Without<Cursor>, Without<Board>, Without<Box>),
     >,
+    mut next_state: ResMut<NextState<GameState>>,
 ) {
     let cursor_transform: Mut<Transform> = query.single_mut();
 
@@ -55,7 +137,7 @@ pub fn box_select(
                 && (boxes.y == cursor_transform.translation.y)
             {
                 if boxes.give_points == true {
-                    *boxv = Visibility::Inherited;
+                    *boxv = Visibility::Visible;
                     boxes.give_points = false;
                     for (mut points, mut ptext) in pointquery.iter_mut() {
                         if boxes.value == 0 {
@@ -94,9 +176,10 @@ pub fn box_select(
         }
         if game_over {
             for (mut boxes, mut boxv) in boxquery.iter_mut() {
-                *boxv = Visibility::Inherited;
+                *boxv = Visibility::Visible;
                 boxes.give_points = false;
             }
+            next_state.set(GameState::MainMenu);
         }
     }
 }
