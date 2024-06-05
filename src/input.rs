@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     board::{Board, Box, Cursor, GameMatrix, TILE_SIZE, TILE_SPACER},
+    colors,
     mainmenu::{Play, Quit},
     GameState, Points,
 };
@@ -152,24 +153,14 @@ pub fn box_select(
                                 points.val *= u64::from(boxes.value);
                             }
                         }
-                        *ptext = Text::from_sections([
-                            TextSection::new(
-                                "Score: ",
-                                TextStyle {
-                                    font_size: 40.0,
-                                    color: Color::BLACK,
-                                    ..default()
-                                },
-                            ),
-                            TextSection::new(
-                                points.val.to_string(),
-                                TextStyle {
-                                    font_size: 40.0,
-                                    color: Color::BLACK,
-                                    ..default()
-                                },
-                            ),
-                        ])
+                        *ptext = Text::from_section(
+                            points.val.to_string(),
+                            TextStyle {
+                                font_size: 30.0,
+                                color: colors::FONT_COLOR,
+                                ..default()
+                            },
+                        );
                     }
                 } else {
                     info!("Error: Box already flipped!");

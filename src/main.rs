@@ -95,7 +95,7 @@ pub struct TotalPoints {
     pub total: u64,
 }
 
-fn cam_setup(mut commands: Commands) {
+fn cam_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle {
         transform: Transform::from_xyz(0.0, -50.0, 0.0),
         ..default()
@@ -108,90 +108,99 @@ fn cam_setup(mut commands: Commands) {
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
-                color: Color::ANTIQUE_WHITE,
-                custom_size: Some(Vec2::new(200.0, 800.0)),
+                custom_size: Some(Vec2::new(200.0, 500.0)),
                 ..default()
             },
-            transform: Transform::from_xyz(-450.0, -50.0, 4.0),
+            texture: asset_server.load("scrbd_back.png"),
+            transform: Transform::from_xyz(-475.0, -50.0, 4.0),
             ..default()
         })
         //point counter
         .with_children(|builder| {
+            builder.spawn(Text2dBundle {
+                text: Text::from_section(
+                    "Score",
+                    TextStyle {
+                        font_size: 20.0,
+                        color: colors::FONT_COLOR,
+                        ..default()
+                    },
+                ),
+                transform: Transform::from_xyz(0.0, 43.0, 0.0),
+                ..default()
+            });
+
             builder
                 .spawn(Text2dBundle {
-                    text: Text::from_sections([
-                        TextSection::new(
-                            "Score: ",
-                            TextStyle {
-                                font_size: 40.0,
-                                color: Color::BLACK,
-                                ..default()
-                            },
-                        ),
-                        TextSection::new(
-                            points.val.to_string() + "\n",
-                            TextStyle {
-                                font_size: 40.0,
-                                color: Color::BLACK,
-                                ..default()
-                            },
-                        ),
-                    ]),
-                    transform: Transform::from_xyz(0.0, 250.0, 1.0),
+                    text: Text::from_section(
+                        points.val.to_string(),
+                        TextStyle {
+                            font_size: 30.0,
+                            color: colors::FONT_COLOR,
+                            ..default()
+                        },
+                    ),
+                    transform: Transform::from_xyz(0.0, 7.0, 1.0),
                     ..default()
                 })
                 .insert(points);
 
+            builder.spawn(Text2dBundle {
+                text: Text::from_section(
+                    "Level",
+                    TextStyle {
+                        font_size: 20.0,
+                        color: colors::FONT_COLOR,
+                        ..default()
+                    },
+                ),
+                transform: Transform::from_xyz(0.0, 208.0, 0.0),
+                ..default()
+            });
+
             builder
                 .spawn(Text2dBundle {
-                    text: Text::from_sections([
-                        TextSection::new(
-                            "Level: ",
-                            TextStyle {
-                                font_size: 40.0,
-                                color: Color::BLACK,
-                                ..default()
-                            },
-                        ),
-                        TextSection::new(
-                            level.lvl.to_string(),
-                            TextStyle {
-                                font_size: 40.0,
-                                color: Color::BLACK,
-                                ..default()
-                            },
-                        ),
-                    ]),
-                    transform: Transform::from_xyz(0.0, 150.0, 1.0),
+                    text: Text::from_section(
+                        level.lvl.to_string(),
+                        TextStyle {
+                            font_size: 30.0,
+                            color: colors::FONT_COLOR,
+                            ..default()
+                        },
+                    ),
+                    transform: Transform::from_xyz(0.0, 170.0, 1.0),
                     ..default()
                 })
                 .insert(level);
-        });
 
-    commands
-        .spawn(Text2dBundle {
-            text: Text::from_sections([
-                TextSection::new(
-                    "Total Score: ",
+            builder.spawn(Text2dBundle {
+                text: Text::from_section(
+                    "Total Score",
                     TextStyle {
-                        font_size: 40.0,
-                        color: Color::BLACK,
+                        font_size: 20.0,
+                        color: colors::FONT_COLOR,
                         ..default()
                     },
                 ),
-                TextSection::new(
-                    totalpoints.total.to_string(),
-                    TextStyle {
-                        font_size: 40.0,
-                        color: Color::BLACK,
-                        ..default()
-                    },
-                ),
-            ]),
-            transform: Transform::from_xyz(0.0, 300.0, 1.0),
-            ..default()
-        })
-        .insert(totalpoints);
+                transform: Transform::from_xyz(0.0, -140.0, 0.0),
+                ..default()
+            });
+
+            builder
+                .spawn(Text2dBundle {
+                    text: Text::from_section(
+                        totalpoints.total.to_string(),
+                        TextStyle {
+                            font_size: 30.0,
+                            color: colors::FONT_COLOR,
+                            ..default()
+                        },
+                    ),
+                    transform: Transform::from_xyz(0.0, -180.0, 1.0),
+                    ..default()
+                })
+                .insert(totalpoints);
+        });
 }
 
 fn loss_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -283,130 +292,3 @@ fn win_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn win_screen_cleanup(mut commands: Commands, win_screen: Res<WinScreen>) {
     commands.entity(win_screen.win_screen).despawn_recursive();
 }
-
-/* this is the reset on win code all needs a lot of work fuck my chungus life mannn
-//Runs on win
-fn reset_game_board_win(
-    mut commands: Commands,
-    margbq: Query<
-        Entity,
-        (
-            Without<board::Board>,
-            With<board::Marginbox>,
-            Without<board::Box>,
-            Without<board::Cursor>,
-            Without<board::Points>,
-        ),
-    >,
-    mut boxq: Query<
-        (&mut board::Box, Entity),
-        (
-            Without<board::Board>,
-            Without<board::Marginbox>,
-            With<board::Box>,
-            Without<board::Cursor>,
-            Without<board::Points>,
-        ),
-    >,
-    boardq: Query<
-        Entity,
-        (
-            With<board::Board>,
-            Without<board::Marginbox>,
-            Without<board::Box>,
-            Without<board::Cursor>,
-            Without<board::Points>,
-        ),
-    >,
-    mut pointquery: Query<
-        (&mut board::Points, &mut Text),
-        (
-            Without<board::Cursor>,
-            Without<board::Board>,
-            Without<board::Box>,
-        ),
-    >,
-    mut levelq: Query<
-        (&mut board::Level, &mut Text),
-        (
-            With<board::Level>,
-            Without<board::Board>,
-            Without<board::Marginbox>,
-            Without<board::Box>,
-            Without<board::Cursor>,
-            Without<board::Points>,
-        ),
-    >,
-    mut matrq: Query<
-        (&mut board::GameMatrix, Entity),
-        (
-            With<board::GameMatrix>,
-            Without<board::Level>,
-            Without<board::Board>,
-            Without<board::Marginbox>,
-            Without<board::Box>,
-            Without<board::Cursor>,
-            Without<board::Points>,
-        ),
-    >,
-) {
-
-    let matrixq = matrq.single_mut();
-    let player_points = pointquery.single();
-    if matrixq.0.target_score == player_points.0.val {
-        for (mut levelnum, mut leveltext) in levelq.iter_mut() {
-            levelnum.lvl += 1;
-            *leveltext = Text::from_sections([
-                TextSection::new(
-                    "Level: ",
-                    TextStyle {
-                        font_size: 40.0,
-                        color: Color::BLACK,
-                        ..default()
-                    },
-                ),
-                TextSection::new(
-                    levelnum.lvl.to_string(),
-                    TextStyle {
-                        font_size: 40.0,
-                        color: Color::BLACK,
-                        ..default()
-                    },
-                ),
-            ])
-        }
-        for ent in margbq.iter() {
-            commands.entity(ent).despawn();
-        }
-        for (_boxes, ent) in boxq.iter_mut() {
-            commands.entity(ent).despawn();
-        }
-        for ent in boardq.iter() {
-            commands.entity(ent).despawn();
-        }
-        for (_game, ent) in matrq.iter() {
-            commands.entity(ent).despawn();
-        }
-        for (points, mut ptext) in pointquery.iter_mut() {
-            *ptext = Text::from_sections([
-                TextSection::new(
-                    "Score: ",
-                    TextStyle {
-                        font_size: 40.0,
-                        color: Color::BLACK,
-                        ..default()
-                    },
-                ),
-                TextSection::new(
-                    points.val.to_string(),
-                    TextStyle {
-                        font_size: 40.0,
-                        color: Color::BLACK,
-                        ..default()
-                    },
-                ),
-            ])
-        }
-    }
-}
-*/

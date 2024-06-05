@@ -98,7 +98,7 @@ pub fn set_game_matrix(level: Level) -> GameMatrix {
         c3_bsum: 0,
         c4_bsum: 0,
     };
-    matr.num_bank += level.lvl;
+    matr.num_bank += level.lvl / 3;
     for tile in (u8::from(0)..u8::from(5)).cartesian_product(u8::from(0)..u8::from(5)) {
         let val: u8 = rand::random::<u8>() % u8::from(2);
         match val {
@@ -386,7 +386,7 @@ pub fn spawn_board(
                                             ..default()
                                         },
                                         transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                        visibility: Visibility::Visible,
+                                        visibility: Visibility::Hidden,
                                         ..default()
                                     })
                                     .insert(boxes);
@@ -785,62 +785,32 @@ pub fn board_cleanup_loss(
     points.1.val = 0;
     level.1.lvl = 1;
 
-    *points.0 = Text::from_sections([
-        TextSection::new(
-            "Score: ",
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        ),
-        TextSection::new(
-            points.1.val.to_string(),
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        ),
-    ]);
+    *points.0 = Text::from_section(
+        points.1.val.to_string(),
+        TextStyle {
+            font_size: 30.0,
+            color: colors::FONT_COLOR,
+            ..default()
+        },
+    );
 
-    *level.0 = Text::from_sections([
-        TextSection::new(
-            "Level: ",
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        ),
-        TextSection::new(
-            level.1.lvl.to_string(),
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        ),
-    ]);
+    *level.0 = Text::from_section(
+        level.1.lvl.to_string(),
+        TextStyle {
+            font_size: 30.0,
+            color: colors::FONT_COLOR,
+            ..default()
+        },
+    );
 
-    *totalpoints.0 = Text::from_sections([
-        TextSection::new(
-            "Total Score: ",
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        ),
-        TextSection::new(
-            totalpoints.1.total.to_string(),
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        ),
-    ]);
+    *totalpoints.0 = Text::from_section(
+        totalpoints.1.total.to_string(),
+        TextStyle {
+            font_size: 30.0,
+            color: colors::FONT_COLOR,
+            ..default()
+        },
+    );
 
     for ent in margbq.iter() {
         commands.entity(ent).despawn_recursive();
@@ -952,62 +922,32 @@ pub fn board_cleanup_won(
     points.1.val = 0;
     level.1.lvl += 1;
 
-    *points.0 = Text::from_sections([
-        TextSection::new(
-            "Score: ",
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        ),
-        TextSection::new(
-            points.1.val.to_string(),
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        ),
-    ]);
+    *points.0 = Text::from_section(
+        points.1.val.to_string(),
+        TextStyle {
+            font_size: 30.0,
+            color: colors::FONT_COLOR,
+            ..default()
+        },
+    );
 
-    *level.0 = Text::from_sections([
-        TextSection::new(
-            "Level: ",
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        ),
-        TextSection::new(
-            level.1.lvl.to_string(),
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        ),
-    ]);
+    *level.0 = Text::from_section(
+        level.1.lvl.to_string(),
+        TextStyle {
+            font_size: 30.0,
+            color: colors::FONT_COLOR,
+            ..default()
+        },
+    );
 
-    *totalpoints.0 = Text::from_sections([
-        TextSection::new(
-            "Total Score: ",
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        ),
-        TextSection::new(
-            totalpoints.1.total.to_string(),
-            TextStyle {
-                font_size: 40.0,
-                color: Color::BLACK,
-                ..default()
-            },
-        ),
-    ]);
+    *totalpoints.0 = Text::from_section(
+        totalpoints.1.total.to_string(),
+        TextStyle {
+            font_size: 30.0,
+            color: colors::FONT_COLOR,
+            ..default()
+        },
+    );
 
     for ent in margbq.iter() {
         commands.entity(ent).despawn_recursive();
