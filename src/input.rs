@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 
 use crate::{
-    board::Board, board::Box, board::Cursor, board::Points, board::TILE_SIZE, board::TILE_SPACER,
-    mainmenu::Play, mainmenu::Quit, GameState,
+    board::{Board, Box, Cursor, GameMatrix, TILE_SIZE, TILE_SPACER},
+    mainmenu::{Play, Quit},
+    GameState, Points,
 };
 
 pub fn mainmenu_input(
@@ -126,6 +127,7 @@ pub fn box_select(
         (&mut Points, &mut Text),
         (Without<Cursor>, Without<Board>, Without<Box>),
     >,
+    matr: Query<&GameMatrix, With<GameMatrix>>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     let cursor_transform: Mut<Transform> = query.single_mut();
@@ -179,6 +181,25 @@ pub fn box_select(
                 *boxv = Visibility::Visible;
                 boxes.give_points = false;
             }
+            next_state.set(GameState::Lost);
+        }
+        if pointquery.single().0.val == matr.single().target_score {
+            info!("You won! Moving to next level...");
+            next_state.set(GameState::Won);
+        }
+    }
+}
+
+pub fn transition_handler(
+    key_input: Res<ButtonInput<KeyCode>>,
+    mut next_state: ResMut<NextState<GameState>>,
+    current_state: Res<State<GameState>>,
+) {
+    if key_input.just_pressed(KeyCode::Space) {
+        if current_state.get() == &GameState::Won {
+            next_state.set(GameState::Playing);
+        }
+        if current_state.get() == &GameState::Lost {
             next_state.set(GameState::MainMenu);
         }
     }
