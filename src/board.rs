@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, reflect::Enum};
 use itertools::Itertools;
 
 use crate::{colors, Level, Points, TotalPoints};
@@ -39,11 +39,15 @@ pub struct Box {
 #[derive(Component, Clone, Copy, Debug)]
 pub struct Marginbox;
 
+#[derive(Component, Clone, Copy, Debug)]
+pub struct Nexter;
+
 #[derive(Component, Copy, Clone)]
 pub struct GameMatrix {
     pub matr: [[u8; 5]; 5],
     pub target_score: u64,
     pub num_bank: u8,
+    pub game_over: bool,
     r0_sum: u8,
     r1_sum: u8,
     r2_sum: u8,
@@ -77,6 +81,7 @@ pub fn set_game_matrix(level: Level) -> GameMatrix {
         ],
         num_bank: 4,
         target_score: 1,
+        game_over: false,
         r0_sum: 0,
         r1_sum: 0,
         r2_sum: 0,
@@ -265,6 +270,7 @@ pub fn spawn_board(
     let margbox = Marginbox;
     let levelnum = levelq.single_mut();
     let matr = set_game_matrix(Level { lvl: levelnum.lvl });
+    let nexter = Nexter {};
 
     commands
         .spawn(SpriteBundle {
@@ -292,6 +298,21 @@ pub fn spawn_board(
         })
         .insert(board)
         .with_children(|builder| {
+            builder
+                .spawn(Text2dBundle {
+                    text: Text::from_section(
+                        "PRESS ENTER TO CONTINUE",
+                        TextStyle {
+                            font_size: 40.0,
+                            color: colors::FONT_COLOR,
+                            ..default()
+                        },
+                    ),
+                    transform: Transform::from_xyz(50.0, 300.0, 1.0),
+                    visibility: Visibility::Hidden,
+                    ..default()
+                })
+                .insert(nexter);
             for tile in (0..board.size).cartesian_product(0..board.size) {
                 let mut boxes = Box {
                     x: offset + f32::from(tile.0) * TILE_SIZE + f32::from(tile.0 + 1) * TILE_SPACER,

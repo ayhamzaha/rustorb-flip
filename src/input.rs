@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    board::{Board, Box, Cursor, GameMatrix, TILE_SIZE, TILE_SPACER},
+    board::{Board, Box, Cursor, GameMatrix, Nexter, TILE_SIZE, TILE_SPACER},
     colors,
     mainmenu::{Play, Quit},
     GameState, Points,
@@ -32,6 +32,7 @@ pub fn mainmenu_input(
         ),
     >,
     mut next_state: ResMut<NextState<GameState>>,
+    mut app_exit_events: ResMut<Events<bevy::app::AppExit>>,
 ) {
     let mut playtext = playq.single_mut();
     let mut quittext = quitq.single_mut();
@@ -77,10 +78,9 @@ pub fn mainmenu_input(
     }
     if key_input.just_pressed(KeyCode::Space) {
         if playtext.1.sel {
-            info!("you chose play!");
             next_state.set(GameState::Playing);
         } else {
-            info!("you chose quit!");
+            app_exit_events.send(bevy::app::AppExit);
         }
     }
 }
@@ -128,13 +128,24 @@ pub fn box_select(
         (&mut Points, &mut Text),
         (Without<Cursor>, Without<Board>, Without<Box>),
     >,
-    matr: Query<&GameMatrix, With<GameMatrix>>,
+    mut matr: Query<&mut GameMatrix, With<GameMatrix>>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut nextq: Query<
+        &mut Visibility,
+        (
+            With<Nexter>,
+            Without<Quit>,
+            Without<Play>,
+            Without<Points>,
+            Without<Cursor>,
+            Without<Board>,
+            Without<Box>,
+        ),
+    >,
 ) {
     let cursor_transform: Mut<Transform> = query.single_mut();
 
     if key_input.just_pressed(KeyCode::Space) {
-        let mut game_over: bool = false;
         for (mut boxes, mut boxv) in boxquery.iter_mut() {
             if (boxes.x == cursor_transform.translation.x)
                 && (boxes.y == cursor_transform.translation.y)
@@ -144,8 +155,7 @@ pub fn box_select(
                     boxes.give_points = false;
                     for (mut points, mut ptext) in pointquery.iter_mut() {
                         if boxes.value == 0 {
-                            info!("GAME OVER: BOMB FLIPPED!");
-                            game_over = true;
+                            matr.single_mut().game_over = true;
                         } else {
                             if points.val == 0 {
                                 points.val += u64::from(boxes.value);
@@ -162,20 +172,28 @@ pub fn box_select(
                             },
                         );
                     }
-                } else {
-                    info!("Error: Box already flipped!");
                 }
             }
         }
-        if game_over {
-            for (mut boxes, mut boxv) in boxquery.iter_mut() {
-                *boxv = Visibility::Visible;
-                boxes.give_points = false;
-            }
+    }
+    if matr.single_mut().game_over {
+        *nextq.single_mut() = Visibility::Visible;
+        for (mut boxes, mut boxv) in boxquery.iter_mut() {
+            *boxv = Visibility::Visible;
+            boxes.give_points = false;
+        }
+
+        if key_input.just_pressed(KeyCode::Enter) {
             next_state.set(GameState::Lost);
         }
-        if pointquery.single().0.val == matr.single().target_score {
-            info!("You won! Moving to next level...");
+    }
+    if pointquery.single().0.val == matr.single().target_score && !matr.single_mut().game_over {
+        *nextq.single_mut() = Visibility::Visible;
+        for (mut boxes, mut boxv) in boxquery.iter_mut() {
+            *boxv = Visibility::Visible;
+            boxes.give_points = false;
+        }
+        if key_input.just_pressed(KeyCode::Enter) {
             next_state.set(GameState::Won);
         }
     }
