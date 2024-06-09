@@ -104,6 +104,45 @@ fn cam_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..default()
     });
 
+    //Spawns the background of the game
+    commands.spawn(SpriteBundle {
+        sprite: Sprite {
+            custom_size: Some(Vec2::new(800.0, 800.0)),
+            ..default()
+        },
+        transform: Transform::from_xyz(50.0, -50.0, 0.0),
+        texture: asset_server.load("game_backfinal.png"),
+        ..default()
+    });
+
+    commands.spawn(SpriteBundle {
+        sprite: Sprite {
+            color: Color::ORANGE,
+            custom_size: Some(Vec2::new(100.0, 100.0)),
+            ..default()
+        },
+        transform: Transform::from_xyz(345.0, -345.0, 1.0),
+        visibility: Visibility::Hidden,
+        ..default()
+    });
+
+    let timer = board::Timer {
+        time: 60.0,
+        perm_time: 60.0,
+    };
+    commands
+        .spawn(SpriteBundle {
+            sprite: Sprite {
+                color: Color::ORANGE,
+                custom_size: Some(Vec2::new(timer.time, 40.0)),
+                ..default()
+            },
+            transform: Transform::from_xyz(350.0, 300.0, 2.0),
+            visibility: Visibility::Hidden,
+            ..default()
+        })
+        .insert(timer);
+
     //Sets and spawns points counter and point counter area
     let points = Points { val: 0 };
     let totalpoints = TotalPoints { total: 0 };
@@ -217,7 +256,7 @@ fn loss_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..default()
             },
             transform: Transform::from_xyz(50.0, -50.0, 0.0),
-            texture: asset_server.load("game_backfinal.png"),
+            texture: asset_server.load("gameback.png"),
             ..default()
         })
         .with_children(|builder| {
@@ -263,11 +302,11 @@ fn win_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
     let win_screen = commands
         .spawn(SpriteBundle {
             sprite: Sprite {
-                custom_size: Some(Vec2::new(1100.0, 1100.0)),
+                custom_size: Some(Vec2::new(800.0, 800.0)),
                 ..default()
             },
-            transform: Transform::from_xyz(50.0, 800.0, 0.0),
-            texture: asset_server.load("game_backfinal.png"),
+            transform: Transform::from_xyz(50.0, -50.0, 0.0),
+            texture: asset_server.load("gameback.png"),
             ..default()
         })
         .with_children(|builder| {

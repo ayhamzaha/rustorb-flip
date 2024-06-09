@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    board::{Board, Box, Cursor, GameMatrix, Nexter, TILE_SIZE, TILE_SPACER},
+    board::{self, Board, Box, Cursor, GameMatrix, Nexter, TimerBack, TILE_SIZE, TILE_SPACER},
     colors,
     mainmenu::{Play, Quit},
     GameState, Points,
@@ -142,8 +142,36 @@ pub fn box_select(
             Without<Box>,
         ),
     >,
+    mut timeq: Query<
+        (&mut board::Timer, &mut Sprite, &mut Visibility),
+        (
+            With<board::Timer>,
+            Without<Nexter>,
+            Without<Quit>,
+            Without<Play>,
+            Without<Points>,
+            Without<Cursor>,
+            Without<Board>,
+            Without<Box>,
+            Without<TimerBack>,
+        ),
+    >,
+    mut tbq: Query<
+        &mut Visibility,
+        (
+            With<TimerBack>,
+            Without<Nexter>,
+            Without<Quit>,
+            Without<Play>,
+            Without<Points>,
+            Without<Cursor>,
+            Without<Board>,
+            Without<Box>,
+        ),
+    >,
 ) {
     let cursor_transform: Mut<Transform> = query.single_mut();
+    let mut time = timeq.single_mut();
 
     if key_input.just_pressed(KeyCode::Space) {
         for (mut boxes, mut boxv) in boxquery.iter_mut() {
@@ -157,6 +185,8 @@ pub fn box_select(
                         if boxes.value == 0 {
                             matr.single_mut().game_over = true;
                         } else {
+                            time.0.time = time.0.perm_time;
+                            //time.1.custom_size = Some(Vec2::new(time.0.time, 40.0));
                             if points.val == 0 {
                                 points.val += u64::from(boxes.value);
                             } else {
@@ -178,6 +208,9 @@ pub fn box_select(
     }
     if matr.single_mut().game_over {
         *nextq.single_mut() = Visibility::Visible;
+        *tbq.single_mut() = Visibility::Hidden;
+        *time.2 = Visibility::Hidden;
+        time.0.perm_time = 60.0;
         for (mut boxes, mut boxv) in boxquery.iter_mut() {
             *boxv = Visibility::Visible;
             boxes.give_points = false;
@@ -189,12 +222,50 @@ pub fn box_select(
     }
     if pointquery.single().0.val == matr.single().target_score && !matr.single_mut().game_over {
         *nextq.single_mut() = Visibility::Visible;
+        *tbq.single_mut() = Visibility::Hidden;
+        *time.2 = Visibility::Hidden;
+        time.0.time = time.0.perm_time;
         for (mut boxes, mut boxv) in boxquery.iter_mut() {
             *boxv = Visibility::Visible;
             boxes.give_points = false;
         }
         if key_input.just_pressed(KeyCode::Enter) {
             next_state.set(GameState::Won);
+        }
+    }
+
+    if !(matr.single_mut().game_over)
+        && !(pointquery.single().0.val == matr.single().target_score
+            && !matr.single_mut().game_over)
+    {
+        if time.0.time > 0.0 {
+            time.0.time -= 0.01;
+        } else {
+            matr.single_mut().game_over = true;
+        }
+        let gap = time.0.time * (600.0 / time.0.perm_time);
+
+        if gap >= 357.0 {
+            *time.1 = Sprite {
+                custom_size: Some(Vec2::new(time.0.time * (600.0 / time.0.perm_time), 40.0)),
+                color: Color::hex("#66FF66").unwrap(),
+                anchor: bevy::sprite::Anchor::CenterRight,
+                ..default()
+            };
+        } else if gap < 356.0 && gap >= 194.0 {
+            *time.1 = Sprite {
+                custom_size: Some(Vec2::new(time.0.time * (600.0 / time.0.perm_time), 40.0)),
+                color: Color::hex("#FFCC00").unwrap(),
+                anchor: bevy::sprite::Anchor::CenterRight,
+                ..default()
+            };
+        } else if gap < 193.0 {
+            *time.1 = Sprite {
+                custom_size: Some(Vec2::new(time.0.time * (600.0 / time.0.perm_time), 40.0)),
+                color: Color::hex("#660000").unwrap(),
+                anchor: bevy::sprite::Anchor::CenterRight,
+                ..default()
+            };
         }
     }
 }

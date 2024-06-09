@@ -27,7 +27,7 @@ pub fn set_mainmenu(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..default()
             },
             transform: Transform::from_xyz(50.0, -50.0, 0.0),
-            texture: asset_server.load("game_backfinal.png"),
+            texture: asset_server.load("gameback.png"),
             ..default()
         })
         .with_children(|builder| {

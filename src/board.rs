@@ -42,6 +42,15 @@ pub struct Marginbox;
 #[derive(Component, Clone, Copy, Debug)]
 pub struct Nexter;
 
+#[derive(Component, Clone, Copy, Debug)]
+pub struct Timer {
+    pub time: f32,
+    pub perm_time: f32,
+}
+
+#[derive(Component, Clone, Copy, Debug)]
+pub struct TimerBack;
+
 #[derive(Component, Copy, Clone)]
 pub struct GameMatrix {
     pub matr: [[u8; 5]; 5],
@@ -103,7 +112,12 @@ pub fn set_game_matrix(level: Level) -> GameMatrix {
         c3_bsum: 0,
         c4_bsum: 0,
     };
-    matr.num_bank += level.lvl / 3;
+    if level.lvl >= 10 {
+        matr.num_bank = 8;
+    } else {
+        matr.num_bank += level.lvl / 3;
+    }
+    dbg!(matr.num_bank);
     for tile in (u8::from(0)..u8::from(5)).cartesian_product(u8::from(0)..u8::from(5)) {
         let val: u8 = rand::random::<u8>() % u8::from(2);
         match val {
@@ -216,23 +230,26 @@ pub fn set_game_matrix(level: Level) -> GameMatrix {
     matr
 }
 
-pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut timeq: Query<(&mut Timer, &mut Visibility, &mut Sprite), With<Timer>>,
+    levelq: Query<
+        &Level,
+        (
+            With<Level>,
+            Without<Board>,
+            Without<Marginbox>,
+            Without<Box>,
+            Without<Cursor>,
+            Without<Points>,
+        ),
+    >,
+) {
     let cursor: Cursor = Cursor {
         start_pos_x: 0.0,
         start_pos_y: 0.0,
     };
-
-    //Spawns the background of the game
-    commands.spawn(SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(Vec2::new(800.0, 800.0)),
-            ..default()
-        },
-        transform: Transform::from_xyz(50.0, -80.0, 0.0),
-        texture: asset_server.load("game_backfinal.png"),
-        ..default()
-    });
-
     //Spawns the cursor
     commands
         .spawn(SpriteBundle {
@@ -246,6 +263,19 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         })
         .insert(cursor);
+
+    let mut time = timeq.single_mut();
+    if time.0.perm_time > 20.0 {
+        time.0.perm_time = 60.0 - f32::from(levelq.single().lvl * 5);
+        time.0.time = time.0.perm_time;
+    }
+    *time.1 = Visibility::Visible;
+    *time.2 = Sprite {
+        color: Color::ORANGE,
+        custom_size: Some(Vec2::new(time.0.perm_time, 40.0)),
+        anchor: bevy::sprite::Anchor::CenterRight,
+        ..default()
+    }
 }
 
 //Spawns game board
@@ -270,8 +300,8 @@ pub fn spawn_board(
     let margbox = Marginbox;
     let levelnum = levelq.single_mut();
     let matr = set_game_matrix(Level { lvl: levelnum.lvl });
-    let nexter = Nexter {};
-
+    let nexter = Nexter;
+    let tb = TimerBack;
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
@@ -298,6 +328,18 @@ pub fn spawn_board(
         })
         .insert(board)
         .with_children(|builder| {
+            builder
+                .spawn(SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(604.0, 44.0)),
+                        anchor: bevy::sprite::Anchor::CenterRight,
+                        ..default()
+                    },
+                    texture: asset_server.load("timer_back.png"),
+                    transform: Transform::from_xyz(350.0, 300.0, 2.0),
+                    ..default()
+                })
+                .insert(tb);
             builder
                 .spawn(Text2dBundle {
                     text: Text::from_section(
@@ -375,7 +417,7 @@ pub fn spawn_board(
                                             ..default()
                                         },
                                         transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                        visibility: Visibility::Hidden,
+                                        visibility: Visibility::Visible,
 
                                         texture: asset_server.load("twoo.png"),
                                         ..default()
@@ -391,7 +433,7 @@ pub fn spawn_board(
                                             ..default()
                                         },
                                         transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                        visibility: Visibility::Hidden,
+                                        visibility: Visibility::Visible,
 
                                         texture: asset_server.load("threee.png"),
                                         ..default()
@@ -797,10 +839,14 @@ pub fn board_cleanup_loss(
             Without<TotalPoints>,
         ),
     >,
+    mut timeq: Query<&mut Visibility, With<Timer>>,
 ) {
     let mut points = pointquery.single_mut();
     let mut level = levelq.single_mut();
     let mut totalpoints = totalpq.single_mut();
+    let mut time = timeq.single_mut();
+
+    *time = Visibility::Hidden;
 
     totalpoints.1.total = 0;
     points.1.val = 0;
@@ -934,10 +980,14 @@ pub fn board_cleanup_won(
             Without<TotalPoints>,
         ),
     >,
+    mut timeq: Query<&mut Visibility, With<Timer>>,
 ) {
     let mut points = pointquery.single_mut();
     let mut level = levelq.single_mut();
     let mut totalpoints = totalpq.single_mut();
+    let mut time = timeq.single_mut();
+
+    *time = Visibility::Hidden;
 
     totalpoints.1.total += points.1.val;
     points.1.val = 0;
