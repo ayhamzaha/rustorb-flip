@@ -228,7 +228,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             custom_size: Some(Vec2::new(800.0, 800.0)),
             ..default()
         },
-        transform: Transform::from_xyz(50.0, -50.0, 0.0),
+        transform: Transform::from_xyz(50.0, -80.0, 0.0),
         texture: asset_server.load("game_backfinal.png"),
         ..default()
     });

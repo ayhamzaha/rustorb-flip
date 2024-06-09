@@ -95,6 +95,9 @@ pub struct TotalPoints {
     pub total: u64,
 }
 
+#[derive(Component, Clone, Copy)]
+pub struct Scoreboard;
+
 fn cam_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle {
         transform: Transform::from_xyz(0.0, -50.0, 0.0),
@@ -105,6 +108,7 @@ fn cam_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let points = Points { val: 0 };
     let totalpoints = TotalPoints { total: 0 };
     let level = Level { lvl: 1 };
+    let scrbd = Scoreboard;
     commands
         .spawn(SpriteBundle {
             sprite: Sprite {
@@ -112,9 +116,11 @@ fn cam_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..default()
             },
             texture: asset_server.load("scrbd_back.png"),
+            visibility: Visibility::Hidden,
             transform: Transform::from_xyz(-475.0, -50.0, 4.0),
             ..default()
         })
+        .insert(scrbd)
         //point counter
         .with_children(|builder| {
             builder.spawn(Text2dBundle {
@@ -244,7 +250,12 @@ fn loss_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-fn loss_screen_cleanup(mut commands: Commands, loss_screen: Res<LossScreen>) {
+fn loss_screen_cleanup(
+    mut commands: Commands,
+    loss_screen: Res<LossScreen>,
+    mut scrbdq: Query<&mut Visibility, With<Scoreboard>>,
+) {
+    *scrbdq.single_mut() = Visibility::Hidden;
     commands.entity(loss_screen.loss_screen).despawn_recursive();
 }
 
@@ -252,10 +263,10 @@ fn win_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
     let win_screen = commands
         .spawn(SpriteBundle {
             sprite: Sprite {
-                custom_size: Some(Vec2::new(800.0, 800.0)),
+                custom_size: Some(Vec2::new(1100.0, 1100.0)),
                 ..default()
             },
-            transform: Transform::from_xyz(50.0, -50.0, 0.0),
+            transform: Transform::from_xyz(50.0, 800.0, 0.0),
             texture: asset_server.load("game_backfinal.png"),
             ..default()
         })

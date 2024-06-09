@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::Scoreboard;
+
 #[derive(Component, Debug)]
 pub struct Play {
     pub sel: bool,
@@ -74,6 +76,11 @@ pub fn set_mainmenu(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(Menu { menu: menu_ent });
 }
 
-pub fn mainmenu_cleanup(mut commands: Commands, menu_data: Res<Menu>) {
+pub fn mainmenu_cleanup(
+    mut commands: Commands,
+    menu_data: Res<Menu>,
+    mut scrbdq: Query<&mut Visibility, With<Scoreboard>>,
+) {
+    *scrbdq.single_mut() = Visibility::Visible;
     commands.entity(menu_data.menu).despawn_recursive();
 }
