@@ -117,7 +117,6 @@ pub fn set_game_matrix(level: Level) -> GameMatrix {
     } else {
         matr.num_bank += level.lvl / 3;
     }
-    dbg!(matr.num_bank);
     for tile in (u8::from(0)..u8::from(5)).cartesian_product(u8::from(0)..u8::from(5)) {
         let val: u8 = rand::random::<u8>() % u8::from(2);
         match val {
@@ -265,7 +264,7 @@ pub fn setup(
         .insert(cursor);
 
     let mut time = timeq.single_mut();
-    if time.0.perm_time > 20.0 {
+    if time.0.perm_time > 10.0 {
         time.0.perm_time = 60.0 - f32::from(levelq.single().lvl * 5);
         time.0.time = time.0.perm_time;
     }

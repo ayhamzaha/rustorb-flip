@@ -4,6 +4,7 @@ mod board;
 mod colors;
 mod input;
 mod mainmenu;
+mod rules;
 
 //cargo run --features bevy/dynamic_linking
 
@@ -34,6 +35,12 @@ fn main() {
             input::mainmenu_input.run_if(in_state(GameState::MainMenu)),
         )
         .add_systems(OnExit(GameState::MainMenu), mainmenu::mainmenu_cleanup)
+        .add_systems(OnEnter(GameState::Rules), rules::set_rules)
+        .add_systems(
+            Update,
+            (input::rule_exit).run_if(in_state(GameState::Rules)),
+        )
+        .add_systems(OnExit(GameState::Rules), rules::rules_cleanup)
         .add_systems(
             OnEnter(GameState::Playing),
             (board::setup, board::spawn_board).chain(),
@@ -70,6 +77,7 @@ enum GameState {
     Playing,
     Won,
     Lost,
+    Rules,
 }
 
 #[derive(Resource)]

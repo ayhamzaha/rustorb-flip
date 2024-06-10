@@ -11,6 +11,10 @@ pub struct Play {
 pub struct Quit {
     pub sel: bool,
 }
+#[derive(Component)]
+pub struct Rules {
+    pub sel: bool,
+}
 
 #[derive(Resource)]
 pub struct Menu {
@@ -20,6 +24,7 @@ pub struct Menu {
 pub fn set_mainmenu(mut commands: Commands, asset_server: Res<AssetServer>) {
     let play = Play { sel: true };
     let quit = Quit { sel: false };
+    let rules = Rules { sel: false };
     let menu_ent = commands
         .spawn(SpriteBundle {
             sprite: Sprite {
@@ -58,6 +63,20 @@ pub fn set_mainmenu(mut commands: Commands, asset_server: Res<AssetServer>) {
                     ..default()
                 })
                 .insert(play);
+
+            builder
+                .spawn(Text2dBundle {
+                    text: Text::from_section(
+                        "Rules",
+                        TextStyle {
+                            font_size: 60.0,
+                            ..default()
+                        },
+                    ),
+                    transform: Transform::from_xyz(0.0, -120.0, 1.0),
+                    ..default()
+                })
+                .insert(rules);
             builder
                 .spawn(Text2dBundle {
                     text: Text::from_section(
@@ -67,7 +86,7 @@ pub fn set_mainmenu(mut commands: Commands, asset_server: Res<AssetServer>) {
                             ..default()
                         },
                     ),
-                    transform: Transform::from_xyz(0.0, -120.0, 1.0),
+                    transform: Transform::from_xyz(0.0, -220.0, 1.0),
                     ..default()
                 })
                 .insert(quit);
@@ -79,7 +98,7 @@ pub fn set_mainmenu(mut commands: Commands, asset_server: Res<AssetServer>) {
 pub fn mainmenu_cleanup(
     mut commands: Commands,
     menu_data: Res<Menu>,
-    mut scrbdq: Query<&mut Visibility, With<Scoreboard>>,
+    mut scrbdq: Query<&mut Visibility, (With<Scoreboard>,)>,
 ) {
     *scrbdq.single_mut() = Visibility::Visible;
     commands.entity(menu_data.menu).despawn_recursive();

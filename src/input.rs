@@ -3,9 +3,18 @@ use bevy::prelude::*;
 use crate::{
     board::{self, Board, Box, Cursor, GameMatrix, Nexter, TimerBack, TILE_SIZE, TILE_SPACER},
     colors,
-    mainmenu::{Play, Quit},
+    mainmenu::{Play, Quit, Rules},
     GameState, Points,
 };
+
+pub fn rule_exit(
+    key_input: Res<ButtonInput<KeyCode>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    if key_input.just_pressed(KeyCode::Enter) {
+        next_state.set(GameState::MainMenu);
+    }
+}
 
 pub fn mainmenu_input(
     key_input: Res<ButtonInput<KeyCode>>,
@@ -14,6 +23,7 @@ pub fn mainmenu_input(
         (
             With<Play>,
             Without<Quit>,
+            Without<Rules>,
             Without<Points>,
             Without<Cursor>,
             Without<Board>,
@@ -24,6 +34,19 @@ pub fn mainmenu_input(
         (&mut Text, &mut Quit),
         (
             With<Quit>,
+            Without<Rules>,
+            Without<Play>,
+            Without<Points>,
+            Without<Cursor>,
+            Without<Board>,
+            Without<Box>,
+        ),
+    >,
+    mut ruleq: Query<
+        (&mut Text, &mut Rules),
+        (
+            With<Rules>,
+            Without<Quit>,
             Without<Play>,
             Without<Points>,
             Without<Cursor>,
@@ -36,12 +59,44 @@ pub fn mainmenu_input(
 ) {
     let mut playtext = playq.single_mut();
     let mut quittext = quitq.single_mut();
+    let mut ruletext = ruleq.single_mut();
 
-    if key_input.just_pressed(KeyCode::ArrowUp) {
-        playtext.1.sel = true;
-        quittext.1.sel = false;
+    if playtext.1.sel {
         *playtext.0 = Text::from_section(
             "Play",
+            TextStyle {
+                font_size: 60.0,
+                color: Color::YELLOW,
+                ..default()
+            },
+        );
+        *ruletext.0 = Text::from_section(
+            "Rules",
+            TextStyle {
+                font_size: 60.0,
+                color: Color::WHITE,
+                ..default()
+            },
+        );
+        *quittext.0 = Text::from_section(
+            "Quit",
+            TextStyle {
+                font_size: 60.0,
+                color: Color::WHITE,
+                ..default()
+            },
+        );
+    } else if ruletext.1.sel {
+        *playtext.0 = Text::from_section(
+            "Play",
+            TextStyle {
+                font_size: 60.0,
+                color: Color::WHITE,
+                ..default()
+            },
+        );
+        *ruletext.0 = Text::from_section(
+            "Rules",
             TextStyle {
                 font_size: 60.0,
                 color: Color::YELLOW,
@@ -56,11 +111,17 @@ pub fn mainmenu_input(
                 ..default()
             },
         );
-    } else if key_input.just_pressed(KeyCode::ArrowDown) {
-        playtext.1.sel = false;
-        quittext.1.sel = true;
+    } else if quittext.1.sel {
         *playtext.0 = Text::from_section(
             "Play",
+            TextStyle {
+                font_size: 60.0,
+                color: Color::WHITE,
+                ..default()
+            },
+        );
+        *ruletext.0 = Text::from_section(
+            "Rules",
             TextStyle {
                 font_size: 60.0,
                 color: Color::WHITE,
@@ -76,9 +137,41 @@ pub fn mainmenu_input(
             },
         );
     }
+
+    if key_input.just_pressed(KeyCode::ArrowUp) {
+        if playtext.1.sel {
+            playtext.1.sel = false;
+            quittext.1.sel = true;
+            //quit is selected
+        } else if ruletext.1.sel {
+            ruletext.1.sel = false;
+            playtext.1.sel = true;
+            //play is selected
+        } else if quittext.1.sel {
+            quittext.1.sel = false;
+            ruletext.1.sel = true;
+            //rules is selected
+        }
+    } else if key_input.just_pressed(KeyCode::ArrowDown) {
+        if playtext.1.sel {
+            playtext.1.sel = false;
+            ruletext.1.sel = true;
+            quittext.1.sel = false;
+        } else if ruletext.1.sel {
+            ruletext.1.sel = false;
+            quittext.1.sel = true;
+            playtext.1.sel = false;
+        } else if quittext.1.sel {
+            quittext.1.sel = false;
+            playtext.1.sel = true;
+            ruletext.1.sel = false;
+        }
+    }
     if key_input.just_pressed(KeyCode::Space) {
         if playtext.1.sel {
             next_state.set(GameState::Playing);
+        } else if ruletext.1.sel {
+            next_state.set(GameState::Rules)
         } else {
             app_exit_events.send(bevy::app::AppExit);
         }
