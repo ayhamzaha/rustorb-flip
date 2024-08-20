@@ -7,6 +7,8 @@ use crate::{
     GameState, Points,
 };
 
+pub const FONT_SIZE: f32 = 60.0;
+
 pub fn rule_exit(
     key_input: Res<ButtonInput<KeyCode>>,
     mut next_state: ResMut<NextState<GameState>>,
@@ -65,7 +67,7 @@ pub fn mainmenu_input(
         *playtext.0 = Text::from_section(
             "Play",
             TextStyle {
-                font_size: 60.0,
+                font_size: FONT_SIZE,
                 color: Color::YELLOW,
                 ..default()
             },
@@ -73,7 +75,7 @@ pub fn mainmenu_input(
         *ruletext.0 = Text::from_section(
             "Rules",
             TextStyle {
-                font_size: 60.0,
+                font_size: FONT_SIZE,
                 color: Color::WHITE,
                 ..default()
             },
@@ -81,7 +83,7 @@ pub fn mainmenu_input(
         *quittext.0 = Text::from_section(
             "Quit",
             TextStyle {
-                font_size: 60.0,
+                font_size: FONT_SIZE,
                 color: Color::WHITE,
                 ..default()
             },
@@ -90,7 +92,7 @@ pub fn mainmenu_input(
         *playtext.0 = Text::from_section(
             "Play",
             TextStyle {
-                font_size: 60.0,
+                font_size: FONT_SIZE,
                 color: Color::WHITE,
                 ..default()
             },
@@ -98,7 +100,7 @@ pub fn mainmenu_input(
         *ruletext.0 = Text::from_section(
             "Rules",
             TextStyle {
-                font_size: 60.0,
+                font_size: FONT_SIZE,
                 color: Color::YELLOW,
                 ..default()
             },
@@ -106,7 +108,7 @@ pub fn mainmenu_input(
         *quittext.0 = Text::from_section(
             "Quit",
             TextStyle {
-                font_size: 60.0,
+                font_size: FONT_SIZE,
                 color: Color::WHITE,
                 ..default()
             },
@@ -115,7 +117,7 @@ pub fn mainmenu_input(
         *playtext.0 = Text::from_section(
             "Play",
             TextStyle {
-                font_size: 60.0,
+                font_size: FONT_SIZE,
                 color: Color::WHITE,
                 ..default()
             },
@@ -123,7 +125,7 @@ pub fn mainmenu_input(
         *ruletext.0 = Text::from_section(
             "Rules",
             TextStyle {
-                font_size: 60.0,
+                font_size: FONT_SIZE,
                 color: Color::WHITE,
                 ..default()
             },
@@ -131,7 +133,7 @@ pub fn mainmenu_input(
         *quittext.0 = Text::from_section(
             "Quit",
             TextStyle {
-                font_size: 60.0,
+                font_size: FONT_SIZE,
                 color: Color::YELLOW,
                 ..default()
             },
@@ -303,7 +305,7 @@ pub fn box_select(
         *nextq.single_mut() = Visibility::Visible;
         *tbq.single_mut() = Visibility::Hidden;
         *time.2 = Visibility::Hidden;
-        time.0.perm_time = 60.0;
+        time.0.perm_time = board::TIMER_START_VAL;
         for (mut boxes, mut boxv) in boxquery.iter_mut() {
             *boxv = Visibility::Visible;
             boxes.give_points = false;
@@ -337,24 +339,25 @@ pub fn box_select(
             matr.single_mut().game_over = true;
         }
         let gap = time.0.time * (600.0 / time.0.perm_time);
+        let y_space: f32 = 35.0;
 
         if gap >= 357.0 {
             *time.1 = Sprite {
-                custom_size: Some(Vec2::new(time.0.time * (600.0 / time.0.perm_time), 40.0)),
+                custom_size: Some(Vec2::new(gap, y_space)),
                 color: Color::hex("#66FF66").unwrap(),
                 anchor: bevy::sprite::Anchor::CenterRight,
                 ..default()
             };
         } else if gap < 356.0 && gap >= 194.0 {
             *time.1 = Sprite {
-                custom_size: Some(Vec2::new(time.0.time * (600.0 / time.0.perm_time), 40.0)),
+                custom_size: Some(Vec2::new(gap, y_space)),
                 color: Color::hex("#FFCC00").unwrap(),
                 anchor: bevy::sprite::Anchor::CenterRight,
                 ..default()
             };
         } else if gap < 193.0 {
             *time.1 = Sprite {
-                custom_size: Some(Vec2::new(time.0.time * (600.0 / time.0.perm_time), 40.0)),
+                custom_size: Some(Vec2::new(gap, y_space)),
                 color: Color::hex("#660000").unwrap(),
                 anchor: bevy::sprite::Anchor::CenterRight,
                 ..default()

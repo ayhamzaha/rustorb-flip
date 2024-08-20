@@ -6,6 +6,8 @@ use crate::{colors, Level, Points, TotalPoints};
 pub const TILE_SIZE: f32 = 80.0;
 pub const TILE_SPACER: f32 = 30.0;
 
+pub const TIMER_START_VAL: f32 = 60.0;
+
 #[derive(Component, Clone, Copy, Debug)]
 pub struct Board {
     pub size: u8,
@@ -264,9 +266,14 @@ pub fn setup(
         .insert(cursor);
 
     let mut time = timeq.single_mut();
-    if time.0.perm_time > 10.0 {
-        time.0.perm_time = 60.0 - f32::from(levelq.single().lvl * 5);
+    if time.0.perm_time > 15.0 {
+        if levelq.single().lvl == 1 {
+            time.0.perm_time = TIMER_START_VAL;
+        } else {
+            time.0.perm_time = TIMER_START_VAL - f32::from(levelq.single().lvl * 5);
+        }
         time.0.time = time.0.perm_time;
+        dbg!(time.0.perm_time);
     }
     *time.1 = Visibility::Visible;
     *time.2 = Sprite {
@@ -330,12 +337,12 @@ pub fn spawn_board(
             builder
                 .spawn(SpriteBundle {
                     sprite: Sprite {
-                        custom_size: Some(Vec2::new(604.0, 44.0)),
+                        custom_size: Some(Vec2::new(608.0, 44.0)),
                         anchor: bevy::sprite::Anchor::CenterRight,
                         ..default()
                     },
                     texture: asset_server.load("timer_back.png"),
-                    transform: Transform::from_xyz(350.0, 300.0, 2.0),
+                    transform: Transform::from_xyz(354.0, 300.0, 0.0),
                     ..default()
                 })
                 .insert(tb);

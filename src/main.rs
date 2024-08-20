@@ -29,42 +29,32 @@ fn main() {
         }))
         .add_systems(Startup, cam_setup)
         .init_state::<GameState>()
-        .add_systems(OnEnter(GameState::MainMenu), mainmenu::set_mainmenu)
         .add_systems(
             Update,
-            input::mainmenu_input.run_if(in_state(GameState::MainMenu)),
+            (
+                input::mainmenu_input.run_if(in_state(GameState::MainMenu)),
+                (input::rule_exit).run_if(in_state(GameState::Rules)),
+                (input::move_cursor, input::box_select).run_if(in_state(GameState::Playing)),
+                input::transition_handler.run_if(in_state(GameState::Lost)),
+                input::transition_handler.run_if(in_state(GameState::Won)),
+            ),
         )
+        .add_systems(OnEnter(GameState::MainMenu), mainmenu::set_mainmenu)
         .add_systems(OnExit(GameState::MainMenu), mainmenu::mainmenu_cleanup)
         .add_systems(OnEnter(GameState::Rules), rules::set_rules)
-        .add_systems(
-            Update,
-            (input::rule_exit).run_if(in_state(GameState::Rules)),
-        )
         .add_systems(OnExit(GameState::Rules), rules::rules_cleanup)
         .add_systems(
             OnEnter(GameState::Playing),
             (board::setup, board::spawn_board).chain(),
         )
         .add_systems(
-            Update,
-            (input::move_cursor, input::box_select).run_if(in_state(GameState::Playing)),
-        )
-        .add_systems(
             OnEnter(GameState::Lost),
             (board::board_cleanup_loss, loss_screen).chain(),
-        )
-        .add_systems(
-            Update,
-            input::transition_handler.run_if(in_state(GameState::Lost)),
         )
         .add_systems(OnExit(GameState::Lost), loss_screen_cleanup)
         .add_systems(
             OnEnter(GameState::Won),
             (board::board_cleanup_won, win_screen).chain(),
-        )
-        .add_systems(
-            Update,
-            input::transition_handler.run_if(in_state(GameState::Won)),
         )
         .add_systems(OnExit(GameState::Won), win_screen_cleanup)
         .run();
