@@ -423,7 +423,7 @@ pub fn spawn_board(
                                             ..default()
                                         },
                                         transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                        visibility: Visibility::Visible,
+                                        visibility: Visibility::Hidden,
 
                                         texture: asset_server.load("twoo.png"),
                                         ..default()
@@ -439,7 +439,7 @@ pub fn spawn_board(
                                             ..default()
                                         },
                                         transform: Transform::from_xyz(0.0, 0.0, boxes.z),
-                                        visibility: Visibility::Visible,
+                                        visibility: Visibility::Hidden,
 
                                         texture: asset_server.load("threee.png"),
                                         ..default()
